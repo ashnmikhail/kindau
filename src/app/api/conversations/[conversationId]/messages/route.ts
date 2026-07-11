@@ -1,5 +1,8 @@
 "use server";
 
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
 export async function GET(
   req: Request,
   context: { params: Promise<{ conversationId: string }> }
