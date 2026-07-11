@@ -5,11 +5,14 @@ import { auth } from "@clerk/nextjs/server";
 
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ offerId: string }> }
+  context: {
+    params: Promise<{
+      offerId: string;
+    }>;
+  }
 ) {
-  const { offerId } = await params;
+  const { offerId } = await context.params;
 
-  // FIX: auth() must be awaited
   const { userId } = await auth();
 
   if (!userId) {
@@ -17,24 +20,67 @@ export async function POST(
   }
 
   const offer = await prisma.jobOffer.findUnique({
-    where: { id: offerId },
+    where: {
+      id: offerId,
+    },
     include: {
-      job: { include: { user: true } },
-      professional: { include: { user: true } },
+      job: {
+        include: {
+          user: true,
+        },
+      },
+      professional: {
+        include: {
+          user: true,
+        },
+      },
     },
   });
 
-  if (!offer) return new Response("Offer not found", { status: 404 });
+  if (!offer) {
+    return new Response("Offer not found", { status: 404 });
+  }
 
   if (offer.professional.userId !== userId) {
     return new Response("Forbidden", { status: 403 });
   }
 
+  if (offer.status !== "PENDING") {
+    return new Response("Offer is no longer available.", {
+      status: 400,
+    });
+  }
+
+  //
+  // Accept this offer
+  //
   await prisma.jobOffer.update({
-    where: { id: offer.id },
-    data: { status: "ACCEPTED" },
+    where: {
+      id: offer.id,
+    },
+    data: {
+      status: "ACCEPTED",
+    },
   });
 
+  //
+  // Expire every other offer
+  //
+  await prisma.jobOffer.updateMany({
+    where: {
+      jobId: offer.jobId,
+      id: {
+        not: offer.id,
+      },
+    },
+    data: {
+      status: "EXPIRED",
+    },
+  });
+
+  //
+  // Assign job
+  //
   await prisma.jobAssignment.create({
     data: {
       jobId: offer.jobId,
@@ -42,11 +88,21 @@ export async function POST(
     },
   });
 
+  //
+  // Update job
+  //
   await prisma.job.update({
-    where: { id: offer.jobId },
-    data: { status: "ASSIGNED" },
+    where: {
+      id: offer.jobId,
+    },
+    data: {
+      status: "ASSIGNED",
+    },
   });
 
+  //
+  // Log activity
+  //
   await logActivity(
     offer.jobId,
     "OFFER_ACCEPTED",
@@ -54,6 +110,9 @@ export async function POST(
     offer.professional.userId
   );
 
+  //
+  // Notify customer
+  //
   await notify(
     offer.job.userId,
     offer.job.user.email,
@@ -62,5 +121,7 @@ export async function POST(
     "offerAccepted"
   );
 
-  return new Response("Offer accepted", { status: 200 });
+  return new Response("Offer accepted", {
+    status: 200,
+  });
 }
