@@ -122,7 +122,7 @@ model Job {
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime?
 
-  userId       String
+  userId        String
   subcategoryId String
 
   description  String
@@ -146,10 +146,8 @@ model Job {
   @@index([status])
 }
 
-
 model JobOffer {
   id             String      @id @default(cuid())
-
   jobId          String
   professionalId String
 
@@ -157,15 +155,12 @@ model JobOffer {
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-
-  // Offer expiry timestamp
   expiresAt      DateTime
 
   job          Job          @relation(fields: [jobId], references: [id])
   professional Professional @relation(fields: [professionalId], references: [id])
 
   @@unique([jobId, professionalId])
-
   @@index([professionalId])
   @@index([status])
   @@index([expiresAt])

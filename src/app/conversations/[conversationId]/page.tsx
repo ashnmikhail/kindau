@@ -9,8 +9,26 @@ export default async function Page(
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
     include: {
-      user: true,
-      professional: true,
+      job: {
+        include: {
+          user: true, // customer
+          assignments: {
+            include: {
+              professional: true, // assigned tradie
+            },
+          },
+        },
+      },
+      participants: {
+        include: {
+          user: true, // users in the conversation
+        },
+      },
+      messages: {
+        include: {
+          sender: true, // sender details
+        },
+      },
     },
   });
 
