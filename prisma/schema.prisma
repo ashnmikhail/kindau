@@ -1,0 +1,347 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id      String @id @default(cuid())
+  clerkId String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  email String   @unique
+  phone String?
+  name  String?
+  role  UserRole @default(CUSTOMER)
+
+  activities               Activity[]
+  bookings                 Booking[]
+  conversationParticipants ConversationParticipant[]
+  jobs                     Job[]
+  messages                 Message[]
+  notifications            Notification[]
+  notificationPreferences  NotificationPreferences?
+  professional             Professional?
+}
+
+model Professional {
+  id                           String   @id @default(cuid())
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+  deletedAt                    DateTime?
+  name                         String
+  email                        String   @unique
+  phone                        String?
+  bio                          String?
+  rating                       Float    @default(0)
+  ratingCount                  Int      @default(0)
+  isVerified                   Boolean  @default(false)
+  isActive                     Boolean  @default(true)
+  abn                          String?
+  businessName                 String?
+  onboardingCompleted          Boolean  @default(false)
+  onboardingStep               Int      @default(1)
+  profileImage                 String?
+  subscriptionCurrentPeriodEnd DateTime?
+  subscriptionId               String?
+  subscriptionStatus           String?
+  stripeCustomerId             String?  @unique
+  userId                       String   @unique
+
+  availability    Availability[]
+  bookings        Booking[]
+  jobAssignments  JobAssignment[]
+  jobOffers       JobOffer[]
+  user            User @relation(fields: [userId], references: [id])
+  categories      ProfessionalCategory[]
+  rotationStates  RotationState[]
+  serviceAreas    ServiceArea[]
+}
+
+model Category {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  createdAt     DateTime @default(now())
+  professionals ProfessionalCategory[]
+  subcategories Subcategory[]
+}
+
+model Subcategory {
+  id         String   @id @default(cuid())
+  name       String
+  categoryId String
+  price      Decimal?
+  jobs       Job[]
+  category   Category @relation(fields: [categoryId], references: [id])
+}
+
+model ProfessionalCategory {
+  id             String @id @default(cuid())
+  professionalId String
+  categoryId     String
+
+  category     Category     @relation(fields: [categoryId], references: [id])
+  professional Professional @relation(fields: [professionalId], references: [id])
+
+  @@unique([professionalId, categoryId])
+}
+
+model ServiceArea {
+  id             String @id @default(cuid())
+  professionalId String
+  suburb         String
+  postcode       String
+  state          String
+
+  professional Professional @relation(fields: [professionalId], references: [id])
+
+  @@index([postcode])
+}
+
+model Availability {
+  id             String @id @default(cuid())
+  professionalId String
+  dayOfWeek      Int
+  startTime      String
+  endTime        String
+
+  professional Professional @relation(fields: [professionalId], references: [id])
+
+  @@index([professionalId, dayOfWeek])
+}
+
+model Job {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  userId       String
+  subcategoryId String
+
+  description  String
+  suburb       String?
+  postcode     String?
+  price        Decimal?
+
+  status       JobStatus @default(PENDING)
+
+  user        User        @relation(fields: [userId], references: [id])
+  subcategory Subcategory @relation(fields: [subcategoryId], references: [id])
+
+  offers       JobOffer[]
+  assignments  JobAssignment[]
+  bookings     Booking?
+  activities   Activity[]
+  conversation Conversation?
+
+  @@index([userId])
+  @@index([subcategoryId])
+  @@index([status])
+}
+
+
+model JobOffer {
+  id             String      @id @default(cuid())
+
+  jobId          String
+  professionalId String
+
+  status         OfferStatus @default(PENDING)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Offer expiry timestamp
+  expiresAt      DateTime
+
+  job          Job          @relation(fields: [jobId], references: [id])
+  professional Professional @relation(fields: [professionalId], references: [id])
+
+  @@unique([jobId, professionalId])
+
+  @@index([professionalId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model Booking {
+  id             String   @id @default(cuid())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  jobId          String @unique
+  customerId     String
+  professionalId String
+
+  scheduledDate DateTime?
+  status        BookingStatus @default(CONFIRMED)
+
+  customer     User         @relation(fields: [customerId], references: [id])
+  job          Job          @relation(fields: [jobId], references: [id])
+  professional Professional @relation(fields: [professionalId], references: [id])
+
+  @@index([professionalId])
+  @@index([customerId])
+  @@index([status])
+}
+
+model JobAssignment {
+  id             String   @id @default(cuid())
+  jobId          String
+  professionalId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  job          Job          @relation(fields: [jobId], references: [id])
+  professional Professional @relation(fields: [professionalId], references: [id])
+
+  @@unique([jobId, professionalId])
+  @@index([jobId])
+  @@index([professionalId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String?
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([read])
+}
+
+model NotificationPreferences {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  emailOffers     Boolean  @default(true)
+  emailJobUpdates Boolean  @default(true)
+  emailMarketing  Boolean  @default(false)
+  inAppOffers     Boolean  @default(true)
+  inAppJobUpdates Boolean  @default(true)
+  doNotDisturb    Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model RotationState {
+  id             String   @id @default(cuid())
+  professionalId String
+  categoryId     String
+  suburb         String
+  lastAssignedAt DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  professional Professional @relation(fields: [professionalId], references: [id])
+
+  @@unique([professionalId, categoryId, suburb])
+  @@index([categoryId, suburb])
+  @@index([professionalId])
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  jobId     String
+  userId    String?
+  type      String
+  message   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job  Job   @relation(fields: [jobId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([jobId])
+  @@index([createdAt])
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  jobId     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job          Job                       @relation(fields: [jobId], references: [id])
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String
+  lastReadAt     DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderId       String
+  body           String?
+  type           String  @default("text")
+  fileUrl        String?
+  fileName       String?
+  read           Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  sender       User         @relation(fields: [senderId], references: [id])
+
+  @@index([conversationId])
+  @@index([senderId])
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum JobStatus {
+  PENDING
+  MATCHING
+  OFFERED
+  ASSIGNED
+  CONTACT_PENDING
+  BOOKED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  TIMED_OUT
+}

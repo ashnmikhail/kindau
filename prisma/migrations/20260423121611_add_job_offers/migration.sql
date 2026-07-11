@@ -1,0 +1,1 @@
+-- This migration was corrupted. No SQL needed.
