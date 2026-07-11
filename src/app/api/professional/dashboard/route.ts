@@ -1,58 +1,78 @@
+// src/app/api/professional/dashboard/route.ts
+
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentProfessional } from "@/lib/getCurrentProfessional";
 
 export async function GET() {
-  // FIX: auth() must be awaited
-  const { userId } = await auth();
+  try {
+    const professional = await getCurrentProfessional();
 
-  if (!userId) {
-    return new Response("Unauthorized", { status: 401 });
+    const offers = await prisma.jobOffer.findMany({
+      where: {
+        professionalId: professional.id,
+        status: "PENDING",
+      },
+      include: {
+        job: {
+          include: {
+            subcategory: true,
+            user: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const activeJobs = await prisma.job.findMany({
+      where: {
+        assignments: {
+          some: { professionalId: professional.id },
+        },
+        status: {
+          in: ["ASSIGNED", "CONTACT_PENDING", "IN_PROGRESS"],
+        },
+      },
+      include: {
+        user: true,
+        subcategory: true,
+        bookings: true,
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    const completedJobs = await prisma.job.findMany({
+      where: {
+        assignments: {
+          some: { professionalId: professional.id },
+        },
+        status: "COMPLETED",
+      },
+      include: {
+        user: true,
+        subcategory: true,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 10,
+    });
+
+    const subscription = {
+      status: professional.subscriptionStatus,
+      renewal: professional.subscriptionCurrentPeriodEnd,
+    };
+
+    return NextResponse.json({
+      professional,
+      offers,
+      activeJobs,
+      completedJobs,
+      subscription,
+    });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Unable to load dashboard" },
+      { status: 500 }
+    );
   }
-
-  const professional = await prisma.professional.findUnique({
-    where: { userId },
-    include: {
-      jobOffers: {
-        where: { status: "PENDING" },
-        include: {
-          job: {
-            include: { subcategory: true, user: true },
-          },
-        },
-      },
-      jobAssignments: {
-        include: {
-          job: {
-            include: { subcategory: true, user: true },
-          },
-        },
-      },
-      bookings: {
-        include: {
-          job: {
-            include: { subcategory: true, user: true },
-          },
-        },
-      },
-    },
-  });
-
-  if (!professional) {
-    return new Response("Professional not found", { status: 404 });
-  }
-
-  return Response.json({
-    offers: professional.jobOffers,
-    assignments: professional.jobAssignments,
-    bookings: professional.bookings,
-    profile: {
-      name: professional.name,
-      email: professional.email,
-      phone: professional.phone,
-      abn: professional.abn,
-      businessName: professional.businessName,
-      isVerified: professional.isVerified,
-      subscriptionStatus: professional.subscriptionStatus,
-    },
-  });
 }
