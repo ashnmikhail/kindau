@@ -4,12 +4,14 @@ import { matchJob } from "@/lib/matchingEngine";
 
 export async function POST(
   request: Request,
-  { params }: { params: { offerId: string } }
+  { params }: { params: Promise<{ offerId: string }> }
 ) {
   try {
+    const { offerId } = await params;
+
     const offer = await prisma.jobOffer.findUnique({
       where: {
-        id: params.offerId,
+        id: offerId,
       },
     });
 
