@@ -1,83 +1,58 @@
+"use server";
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentProfessional } from "@/lib/getCurrentProfessional";
 import { matchJob } from "@/lib/matchingEngine";
 
 export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ offerId: string }> }
+  req: Request,
+  context: { params: { offerId: string } }
 ) {
   try {
-    const { offerId } = await params;
+    const { offerId } = context.params;
+    const professional = await getCurrentProfessional();
 
     const offer = await prisma.jobOffer.findUnique({
-      where: {
-        id: offerId,
+      where: { id: offerId },
+      include: {
+        job: {
+          include: { user: true },
+        },
+        professional: true,
       },
     });
 
     if (!offer) {
-      return NextResponse.json(
-        { error: "Offer not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Offer not found" }, { status: 404 });
+    }
+
+    if (offer.professionalId !== professional.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     if (offer.status !== "PENDING") {
       return NextResponse.json(
-        { error: "Offer has already been processed." },
+        { error: "Offer is no longer available" },
         { status: 400 }
       );
     }
 
-    //
-    // Mark this offer as declined
-    //
+    // Decline
     await prisma.jobOffer.update({
-      where: {
-        id: offer.id,
-      },
-      data: {
-        status: "DECLINED",
-      },
+      where: { id: offer.id },
+      data: { status: "DECLINED" },
     });
 
-    //
-    // Log activity
-    //
-    const professional = await prisma.professional.findUnique({
-      where: {
-        id: offer.professionalId,
-      },
-    });
-
-    await prisma.activity.create({
-      data: {
-        jobId: offer.jobId,
-        userId: professional?.userId,
-        type: "JOB_DECLINED",
-        message: "Professional declined the job offer.",
-      },
-    });
-
-    //
-    // Offer next professional the job
-    //
+    // Trigger matching engine to send next offer
     await matchJob(offer.jobId);
 
-    return NextResponse.json({
-      success: true,
-    });
-
-  } catch (error) {
-    console.error(error);
-
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error(err);
     return NextResponse.json(
-      {
-        error: "Unable to decline offer.",
-      },
-      {
-        status: 500,
-      }
+      { error: "Unable to decline offer" },
+      { status: 500 }
     );
   }
 }

@@ -17,13 +17,14 @@ export default function TradieDashboard() {
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
+  async function load() {
+    const res = await fetch("/api/professional/dashboard");
+    const json = await res.json();
+    setData(json);
+    setLoading(false);
+  }
+
   useEffect(() => {
-    async function load() {
-      const res = await fetch("/api/professional/dashboard");
-      const json = await res.json();
-      setData(json);
-      setLoading(false);
-    }
     load();
   }, []);
 
@@ -83,10 +84,29 @@ export default function TradieDashboard() {
                 </div>
 
                 <div className="flex gap-3">
-                  <button className="px-4 py-2 bg-green-600 text-white rounded">
+                  {/* ACCEPT */}
+                  <button
+                    onClick={async () => {
+                      await fetch(`/api/professional/offers/${offer.id}/accept`, {
+                        method: "POST",
+                      });
+                      load();
+                    }}
+                    className="px-4 py-2 bg-green-600 text-white rounded"
+                  >
                     Accept
                   </button>
-                  <button className="px-4 py-2 bg-gray-300 rounded">
+
+                  {/* DECLINE */}
+                  <button
+                    onClick={async () => {
+                      await fetch(`/api/professional/offers/${offer.id}/decline`, {
+                        method: "POST",
+                      });
+                      load();
+                    }}
+                    className="px-4 py-2 bg-gray-300 rounded"
+                  >
                     Decline
                   </button>
                 </div>
@@ -117,13 +137,44 @@ export default function TradieDashboard() {
               </div>
 
               <div className="flex gap-3">
-                <button className="px-4 py-2 bg-blue-600 text-white rounded">
+                {/* CONTACT → OPEN CHAT */}
+                <button
+                  className="px-4 py-2 bg-blue-600 text-white rounded"
+                  onClick={async () => {
+                    const res = await fetch("/api/conversations/start", {
+                      method: "POST",
+                      body: JSON.stringify({ jobId: job.id }),
+                    });
+                    const json = await res.json();
+                    window.location.href = `/tradies/chat/${json.conversationId}`;
+                  }}
+                >
                   Contact
                 </button>
-                <button className="px-4 py-2 bg-yellow-500 text-white rounded">
+
+                {/* START JOB */}
+                <button
+                  className="px-4 py-2 bg-yellow-500 text-white rounded"
+                  onClick={async () => {
+                    await fetch(`/api/professional/jobs/${job.id}/start`, {
+                      method: "POST",
+                    });
+                    load();
+                  }}
+                >
                   Start Job
                 </button>
-                <button className="px-4 py-2 bg-green-600 text-white rounded">
+
+                {/* COMPLETE JOB */}
+                <button
+                  className="px-4 py-2 bg-green-600 text-white rounded"
+                  onClick={async () => {
+                    await fetch(`/api/professional/jobs/${job.id}/complete`, {
+                      method: "POST",
+                    });
+                    load();
+                  }}
+                >
                   Complete Job
                 </button>
               </div>
