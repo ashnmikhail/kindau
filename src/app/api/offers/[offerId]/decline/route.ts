@@ -10,7 +10,6 @@ export async function POST(
 ) {
   const { offerId } = context.params;
 
-  // FIX: auth() is synchronous
   const { userId } = auth();
 
   if (!userId) {
@@ -51,7 +50,6 @@ export async function POST(
     "offerDeclined"
   );
 
-  // FIX: runMatchingPipeline does not exist — use matchJob
   await matchJob(offer.jobId);
 
   return new Response("Offer declined", { status: 200 });
