@@ -1,14 +1,11 @@
 "use server";
 
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-
 export async function GET(
   req: Request,
-  { params }: { params: { conversationId: string } }
+  context: { params: Promise<{ conversationId: string }> }
 ) {
   try {
-    const { conversationId } = params;
+    const { conversationId } = await context.params;
 
     const messages = await prisma.message.findMany({
       where: { conversationId },
