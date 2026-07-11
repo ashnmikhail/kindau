@@ -1,5 +1,3 @@
-// src/app/tradies/page.tsx
-
 import { useEffect, useState } from "react";
 
 type DashboardResponse = {
