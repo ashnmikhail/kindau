@@ -3,16 +3,16 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   request: Request,
-  { params }: { params: { offerId: string } }
+  context: { params: { offerId: string } }
 ) {
   try {
+    const { offerId } = context.params;
+
     //
     // Load Offer
     //
     const offer = await prisma.jobOffer.findUnique({
-      where: {
-        id: params.offerId,
-      },
+      where: { id: offerId },
       include: {
         job: true,
         professional: true,
@@ -20,27 +20,13 @@ export async function POST(
     });
 
     if (!offer) {
-      return NextResponse.json(
-        {
-          error: "Offer not found.",
-        },
-        {
-          status: 404,
-        }
-      );
+      return NextResponse.json({ error: "Offer not found." }, { status: 404 });
     }
 
-    //
-    // Already accepted/declined/etc.
-    //
     if (offer.status !== "PENDING") {
       return NextResponse.json(
-        {
-          error: "This offer is no longer available.",
-        },
-        {
-          status: 400,
-        }
+        { error: "This offer is no longer available." },
+        { status: 400 }
       );
     }
 
@@ -48,12 +34,8 @@ export async function POST(
     // Mark accepted
     //
     await prisma.jobOffer.update({
-      where: {
-        id: offer.id,
-      },
-      data: {
-        status: "ACCEPTED",
-      },
+      where: { id: offer.id },
+      data: { status: "ACCEPTED" },
     });
 
     //
@@ -62,37 +44,28 @@ export async function POST(
     await prisma.jobOffer.updateMany({
       where: {
         jobId: offer.jobId,
-        id: {
-          not: offer.id,
-        },
+        id: { not: offer.id },
       },
-      data: {
-        status: "EXPIRED",
-      },
+      data: { status: "EXPIRED" },
     });
 
     //
     // Update Job
     //
     await prisma.job.update({
-      where: {
-        id: offer.jobId,
-      },
-      data: {
-        status: "ASSIGNED",
-      },
+      where: { id: offer.jobId },
+      data: { status: "ASSIGNED" },
     });
 
     //
     // Assignment
     //
-    const existingAssignment =
-      await prisma.jobAssignment.findFirst({
-        where: {
-          jobId: offer.jobId,
-          professionalId: offer.professionalId,
-        },
-      });
+    const existingAssignment = await prisma.jobAssignment.findFirst({
+      where: {
+        jobId: offer.jobId,
+        professionalId: offer.professionalId,
+      },
+    });
 
     if (!existingAssignment) {
       await prisma.jobAssignment.create({
@@ -106,12 +79,9 @@ export async function POST(
     //
     // Booking
     //
-    const existingBooking =
-      await prisma.booking.findUnique({
-        where: {
-          jobId: offer.jobId,
-        },
-      });
+    const existingBooking = await prisma.booking.findUnique({
+      where: { jobId: offer.jobId },
+    });
 
     if (!existingBooking) {
       await prisma.booking.create({
@@ -127,20 +97,14 @@ export async function POST(
     //
     // Conversation
     //
-    let conversation =
-      await prisma.conversation.findUnique({
-        where: {
-          jobId: offer.jobId,
-        },
-      });
+    let conversation = await prisma.conversation.findUnique({
+      where: { jobId: offer.jobId },
+    });
 
     if (!conversation) {
-      conversation =
-        await prisma.conversation.create({
-          data: {
-            jobId: offer.jobId,
-          },
-        });
+      conversation = await prisma.conversation.create({
+        data: { jobId: offer.jobId },
+      });
     }
 
     //
@@ -189,19 +153,12 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({
-      success: true,
-    });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);
-
     return NextResponse.json(
-      {
-        error: "Unable to accept offer.",
-      },
-      {
-        status: 500,
-      }
+      { error: "Unable to accept offer." },
+      { status: 500 }
     );
   }
 }

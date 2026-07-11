@@ -1,17 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { notify } from "@/lib/notify";
-import { runMatchingPipeline } from "@/lib/matchingEngine";
+import { matchJob } from "@/lib/matchingEngine";
 import { auth } from "@clerk/nextjs/server";
 
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ offerId: string }> }
+  context: { params: { offerId: string } }
 ) {
-  const { offerId } = await params;
+  const { offerId } = context.params;
 
-  // FIX: auth() must be awaited
-  const { userId } = await auth();
+  // FIX: auth() is synchronous
+  const { userId } = auth();
 
   if (!userId) {
     return new Response("Unauthorized", { status: 401 });
@@ -51,7 +51,8 @@ export async function POST(
     "offerDeclined"
   );
 
-  await runMatchingPipeline(offer.jobId);
+  // FIX: runMatchingPipeline does not exist — use matchJob
+  await matchJob(offer.jobId);
 
   return new Response("Offer declined", { status: 200 });
 }
