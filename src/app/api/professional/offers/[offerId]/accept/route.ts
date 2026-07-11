@@ -2,78 +2,32 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentProfessional } from "@/lib/getCurrentProfessional";
+import { auth } from "@clerk/nextjs/server";
 
 export async function POST(
   req: Request,
-  context: { params: { offerId: string } }
+  context: { params: Promise<{ offerId: string }> }
 ) {
   try {
-    const { offerId } = context.params;
-    const professional = await getCurrentProfessional();
+    const { offerId } = await context.params;
+    const { userId } = await auth();
 
-    const offer = await prisma.jobOffer.findUnique({
-      where: { id: offerId },
-      include: {
-        job: {
-          include: { user: true, subcategory: true },
-        },
-        professional: true,
-      },
-    });
-
-    if (!offer) {
-      return NextResponse.json({ error: "Offer not found" }, { status: 404 });
-    }
-
-    if (offer.professionalId !== professional.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    if (offer.status !== "PENDING") {
+    if (!userId) {
       return NextResponse.json(
-        { error: "Offer is no longer available" },
-        { status: 400 }
+        { error: "Unauthorized" },
+        { status: 401 }
       );
     }
 
-    // Accept the offer
-    await prisma.jobOffer.update({
-      where: { id: offer.id },
+    const offer = await prisma.jobOffer.update({
+      where: { id: offerId },
       data: { status: "ACCEPTED" },
-    });
-
-    // Expire all other offers
-    await prisma.jobOffer.updateMany({
-      where: {
-        jobId: offer.jobId,
-        id: { not: offer.id },
-      },
-      data: { status: "EXPIRED" },
-    });
-
-    // Assign job
-    await prisma.job.update({
-      where: { id: offer.jobId },
-      data: { status: "ASSIGNED" },
-    });
-
-    // Create assignment if missing
-    await prisma.jobAssignment.upsert({
-      where: {
-        jobId_professionalId: {
-          jobId: offer.jobId,
-          professionalId: professional.id,
-        },
-      },
-      update: {},
-      create: {
-        jobId: offer.jobId,
-        professionalId: professional.id,
+      include: {
+        job: true,
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ offer });
   } catch (err) {
     console.error(err);
     return NextResponse.json(

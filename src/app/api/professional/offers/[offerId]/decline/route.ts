@@ -7,10 +7,10 @@ import { matchJob } from "@/lib/matchingEngine";
 
 export async function POST(
   req: Request,
-  context: { params: { offerId: string } }
+  context: { params: Promise<{ offerId: string }> }
 ) {
   try {
-    const { offerId } = context.params;
+    const { offerId } = await context.params;
     const professional = await getCurrentProfessional();
 
     const offer = await prisma.jobOffer.findUnique({
