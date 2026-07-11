@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   request: Request,
-  context: { params: { offerId: string } }
+  { params }: { params: Promise<{ offerId: string }> }
 ) {
   try {
-    const { offerId } = context.params;
+    const { offerId } = await params;
 
     //
     // Load Offer
