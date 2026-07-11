@@ -5,10 +5,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   req: Request,
-  context: { params: { conversationId: string } }
+  { params }: { params: { conversationId: string } }
 ) {
   try {
-    const { conversationId } = context.params;
+    const { conversationId } = params;
 
     const messages = await prisma.message.findMany({
       where: { conversationId },

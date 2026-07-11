@@ -6,10 +6,10 @@ import { auth } from "@clerk/nextjs/server";
 
 export async function POST(
   req: Request,
-  context: { params: { conversationId: string } }
+  { params }: { params: { conversationId: string } }
 ) {
   try {
-    const { conversationId } = context.params;
+    const { conversationId } = params;
     const { userId } = await auth();
 
     if (!userId) {
