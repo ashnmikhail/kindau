@@ -54,4 +54,3 @@ export async function POST(
 
   return new Response("Offer declined", { status: 200 });
 }
-import
