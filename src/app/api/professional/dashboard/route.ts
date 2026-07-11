@@ -1,5 +1,3 @@
-// src/app/api/professional/dashboard/route.ts
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentProfessional } from "@/lib/getCurrentProfessional";
