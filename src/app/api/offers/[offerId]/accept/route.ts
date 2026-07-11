@@ -1,127 +1,173 @@
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { logActivity } from "@/lib/activity";
-import { notify } from "@/lib/notify";
-import { auth } from "@clerk/nextjs/server";
 
 export async function POST(
-  req: Request,
-  context: {
-    params: Promise<{
-      offerId: string;
-    }>;
-  }
+  request: Request,
+  context: { params: { offerId: string } }
 ) {
-  const { offerId } = await context.params;
+  try {
+    const { offerId } = context.params;
 
-  const { userId } = await auth();
-
-  if (!userId) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-
-  const offer = await prisma.jobOffer.findUnique({
-    where: {
-      id: offerId,
-    },
-    include: {
-      job: {
-        include: {
-          user: true,
-        },
+    //
+    // Load Offer
+    //
+    const offer = await prisma.jobOffer.findUnique({
+      where: {
+        id: offerId,
       },
-      professional: {
-        include: {
-          user: true,
-        },
+      include: {
+        job: true,
+        professional: true,
       },
-    },
-  });
-
-  if (!offer) {
-    return new Response("Offer not found", { status: 404 });
-  }
-
-  if (offer.professional.userId !== userId) {
-    return new Response("Forbidden", { status: 403 });
-  }
-
-  if (offer.status !== "PENDING") {
-    return new Response("Offer is no longer available.", {
-      status: 400,
     });
-  }
 
-  //
-  // Accept this offer
-  //
-  await prisma.jobOffer.update({
-    where: {
-      id: offer.id,
-    },
-    data: {
-      status: "ACCEPTED",
-    },
-  });
+    if (!offer) {
+      return NextResponse.json(
+        { error: "Offer not found." },
+        { status: 404 }
+      );
+    }
 
-  //
-  // Expire every other offer
-  //
-  await prisma.jobOffer.updateMany({
-    where: {
-      jobId: offer.jobId,
-      id: {
-        not: offer.id,
+    //
+    // Already accepted/declined/etc.
+    //
+    if (offer.status !== "PENDING") {
+      return NextResponse.json(
+        { error: "This offer is no longer available." },
+        { status: 400 }
+      );
+    }
+
+    //
+    // Mark accepted
+    //
+    await prisma.jobOffer.update({
+      where: { id: offer.id },
+      data: { status: "ACCEPTED" },
+    });
+
+    //
+    // Expire all remaining offers
+    //
+    await prisma.jobOffer.updateMany({
+      where: {
+        jobId: offer.jobId,
+        id: { not: offer.id },
       },
-    },
-    data: {
-      status: "EXPIRED",
-    },
-  });
+      data: { status: "EXPIRED" },
+    });
 
-  //
-  // Assign job
-  //
-  await prisma.jobAssignment.create({
-    data: {
-      jobId: offer.jobId,
-      professionalId: offer.professionalId,
-    },
-  });
+    //
+    // Update Job
+    //
+    await prisma.job.update({
+      where: { id: offer.jobId },
+      data: { status: "ASSIGNED" },
+    });
 
-  //
-  // Update job
-  //
-  await prisma.job.update({
-    where: {
-      id: offer.jobId,
-    },
-    data: {
-      status: "ASSIGNED",
-    },
-  });
+    //
+    // Assignment
+    //
+    const existingAssignment = await prisma.jobAssignment.findFirst({
+      where: {
+        jobId: offer.jobId,
+        professionalId: offer.professionalId,
+      },
+    });
 
-  //
-  // Log activity
-  //
-  await logActivity(
-    offer.jobId,
-    "OFFER_ACCEPTED",
-    `${offer.professional.name} accepted the offer.`,
-    offer.professional.userId
-  );
+    if (!existingAssignment) {
+      await prisma.jobAssignment.create({
+        data: {
+          jobId: offer.jobId,
+          professionalId: offer.professionalId,
+        },
+      });
+    }
 
-  //
-  // Notify customer
-  //
-  await notify(
-    offer.job.userId,
-    offer.job.user.email,
-    "Offer Accepted",
-    `${offer.professional.name} has accepted your job.`,
-    "offerAccepted"
-  );
+    //
+    // Booking
+    //
+    const existingBooking = await prisma.booking.findUnique({
+      where: { jobId: offer.jobId },
+    });
 
-  return new Response("Offer accepted", {
-    status: 200,
-  });
+    if (!existingBooking) {
+      await prisma.booking.create({
+        data: {
+          jobId: offer.jobId,
+          customerId: offer.job.userId,
+          professionalId: offer.professionalId,
+          status: "CONFIRMED",
+        },
+      });
+    }
+
+    //
+    // Conversation
+    //
+    let conversation = await prisma.conversation.findUnique({
+      where: { jobId: offer.jobId },
+    });
+
+    if (!conversation) {
+      conversation = await prisma.conversation.create({
+        data: { jobId: offer.jobId },
+      });
+    }
+
+    //
+    // Customer participant
+    //
+    await prisma.conversationParticipant.upsert({
+      where: {
+        conversationId_userId: {
+          conversationId: conversation.id,
+          userId: offer.job.userId,
+        },
+      },
+      update: {},
+      create: {
+        conversationId: conversation.id,
+        userId: offer.job.userId,
+      },
+    });
+
+    //
+    // Professional participant
+    //
+    await prisma.conversationParticipant.upsert({
+      where: {
+        conversationId_userId: {
+          conversationId: conversation.id,
+          userId: offer.professional.userId,
+        },
+      },
+      update: {},
+      create: {
+        conversationId: conversation.id,
+        userId: offer.professional.userId,
+      },
+    });
+
+    //
+    // Activity Log
+    //
+    await prisma.activity.create({
+      data: {
+        jobId: offer.jobId,
+        userId: offer.professional.userId,
+        type: "JOB_ACCEPTED",
+        message: "Professional accepted the job.",
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      { error: "Unable to accept offer." },
+      { status: 500 }
+    );
+  }
 }
