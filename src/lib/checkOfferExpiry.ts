@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { runMatchingPipeline } from "./matchingEngine";
+import { matchJob } from "./matchingEngine";
 import { notify } from "@/lib/notify";
 
 export async function checkOfferExpiry(jobId: string) {
@@ -45,6 +45,6 @@ export async function checkOfferExpiry(jobId: string) {
     );
 
     // 4. Move to next professional
-    await runMatchingPipeline(jobId);
+    await matchJob(jobId);
   }
 }
