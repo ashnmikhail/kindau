@@ -16,6 +16,8 @@ export async function notify(
     return
   }
 
+import { prisma } from "@/lib/prisma"
+
   if (prefs.doNotDisturb) return
 
   let allowEmail = true
