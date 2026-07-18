@@ -1,12 +1,16 @@
 type JobPageProps = {
-  params: {
+  params: Promise<{
     jobId: string
-  }
+  }>
 }
 
 export default async function JobPage({ params }: JobPageProps) {
+  // 1. Await the dynamic params from Next.js 15
+  const { jobId } = await params
+
+  // 2. Fetch data using the resolved jobId
   const job = await prisma.job.findUnique({
-    where: { id: params.jobId },
+    where: { id: jobId },
     include: {
       review: true,
       user: true,
@@ -14,6 +18,11 @@ export default async function JobPage({ params }: JobPageProps) {
       subcategory: { include: { category: true } },
     },
   })
+
+  // Optional but recommended: Handle if the job ID doesn't exist
+  if (!job) {
+    return <div className="p-6">Job not found.</div>
+  }
 
   const { userId } = await auth()
 
