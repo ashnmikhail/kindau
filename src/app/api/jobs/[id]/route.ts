@@ -3,12 +3,12 @@ import { auth } from "@clerk/nextjs/server"
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   const { userId } = auth()
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
-  const jobId = params.id
+  const jobId = context.params.id
 
   const job = await prisma.job.findUnique({
     where: { id: jobId },
@@ -46,7 +46,6 @@ export async function GET(
 
   if (!job) return Response.json({ error: "Job not found" }, { status: 404 })
 
-  // Ensure professional owns this job
   if (job.professional?.userId !== userId)
     return Response.json({ error: "Forbidden" }, { status: 403 })
 
