@@ -78,9 +78,9 @@ export async function retryMatching(jobId: string) {
       categories: {
         some: { categoryId: job.subcategory.categoryId },
       },
-      serviceAreas: {
-        some: { suburb: job.suburb },
-      },
+      serviceAreas: job.suburb
+        ? { some: { suburb: job.suburb } }
+        : undefined,
       isActive: true,
     },
     take: 10,
