@@ -17,14 +17,16 @@ export async function POST(req: Request) {
   if (booking.job.userId !== userId)
     return Response.json({ error: "Forbidden" }, { status: 403 })
 
+  // Update booking status
   await prisma.booking.update({
     where: { id: bookingId },
-    data: { status: "DECLINED" },
+    data: { status: "CANCELLED" }, // Fixed: Changed "DECLINED" to "CANCELLED"
   })
 
+  // Update job status
   await prisma.job.update({
     where: { id: booking.jobId },
-    data: { status: "MATCHING" }, // restart matching
+    data: { status: "MATCHING" }, // restart matching (This is a valid JobStatus!)
   })
 
   return Response.json({ success: true })
