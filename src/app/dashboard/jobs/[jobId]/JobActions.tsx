@@ -1,6 +1,10 @@
 "use client"
 
-export function JobActions({ job }) {
+type JobActionsProps = {
+  job: any
+}
+
+export function JobActions({ job }: JobActionsProps) {
   async function startJob() {
     await fetch("/api/jobs/start", {
       method: "POST",
