@@ -1,3 +1,8 @@
+import { prisma } from "@/lib/prisma" // or your specific path to the prisma client instance
+import Link from "next/link"
+import { auth } from "@/auth" // or wherever your auth() helper is defined
+import JobActions from "./JobActions" // adjust if JobActions is located elsewhere
+
 type JobPageProps = {
   params: Promise<{
     jobId: string
