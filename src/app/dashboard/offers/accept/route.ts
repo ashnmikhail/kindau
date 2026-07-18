@@ -21,16 +21,32 @@ export async function POST(req: Request) {
   if (offer.expiresAt < new Date())
     return Response.json({ error: "Offer expired" }, { status: 400 })
 
-  // Mark offer accepted
+  // 1. Mark the specific offer as accepted
   await prisma.jobOffer.update({
     where: { id: offerId },
     data: { status: "ACCEPTED" },
   })
 
-  // Assign job
+  // 2. Update the main job status to ASSIGNED
   await prisma.job.update({
     where: { id: offer.jobId },
-    data: { status: "ASSIGNED", professionalId: offer.professionalId },
+    data: { status: "ASSIGNED" },
+  })
+
+  // 3. Create the assignment linking the job to the professional
+  // Using upsert prevents errors if the record somehow already exists
+  await prisma.jobAssignment.upsert({
+    where: {
+      jobId_professionalId: {
+        jobId: offer.jobId,
+        professionalId: offer.professionalId,
+      },
+    },
+    create: {
+      jobId: offer.jobId,
+      professionalId: offer.professionalId,
+    },
+    update: {},
   })
 
   return Response.json({ success: true })
