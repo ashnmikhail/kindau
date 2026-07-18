@@ -28,6 +28,7 @@ model User {
   notifications            Notification[]
   notificationPreferences  NotificationPreferences?
   professional             Professional?
+  reviews                  Review[]        // reviews written by this user (as customer)
 }
 
 model Professional {
@@ -62,6 +63,7 @@ model Professional {
   categories      ProfessionalCategory[]
   rotationStates  RotationState[]
   serviceAreas    ServiceArea[]
+  reviews         Review[]        // reviews received by this professional
 }
 
 model Category {
@@ -140,6 +142,7 @@ model Job {
   bookings     Booking?
   activities   Activity[]
   conversation Conversation?
+  reviews      Review[]        // reviews attached to this job
 
   @@index([userId])
   @@index([subcategoryId])
@@ -305,6 +308,29 @@ model Message {
 
   @@index([conversationId])
   @@index([senderId])
+}
+
+model Review {
+  id              String   @id @default(cuid())
+  jobId           String
+  customerId      String
+  professionalId  String
+
+  communication   Int      // 1–5
+  reliability     Int      // 1–5
+  professionalism Int      // 1–5
+  quality         Int      // 1–5
+  comment         String?
+
+  createdAt       DateTime @default(now())
+
+  job          Job          @relation(fields: [jobId], references: [id])
+  customer     User         @relation(fields: [customerId], references: [id])
+  professional Professional @relation(fields: [professionalId], references: [id])
+
+  @@index([professionalId])
+  @@index([customerId])
+  @@index([jobId])
 }
 
 enum UserRole {
