@@ -1,21 +1,11 @@
-import { prisma } from "@/lib/prisma" // or your specific path to the prisma client instance
+import { prisma } from "@/lib/prisma"
 import Link from "next/link"
-import { auth } from "@/auth" // or wherever your auth() helper is defined
-import JobActions from "./JobActions" // adjust if JobActions is located elsewhere
+import { auth } from "@clerk/nextjs/server"
+import JobActions from "./JobActions"
 
-type JobPageProps = {
-  params: Promise<{
-    jobId: string
-  }>
-}
-
-export default async function JobPage({ params }: JobPageProps) {
-  // 1. Await the dynamic params from Next.js 15
-  const { jobId } = await params
-
-  // 2. Fetch data using the resolved jobId
+export default async function JobPage({ params }: { params: { jobId: string } }) {
   const job = await prisma.job.findUnique({
-    where: { id: jobId },
+    where: { id: params.jobId },
     include: {
       review: true,
       user: true,
@@ -24,7 +14,6 @@ export default async function JobPage({ params }: JobPageProps) {
     },
   })
 
-  // Optional but recommended: Handle if the job ID doesn't exist
   if (!job) {
     return <div className="p-6">Job not found.</div>
   }
