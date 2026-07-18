@@ -5,12 +5,14 @@ export async function GET(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  // In Next.js 15, Clerk's auth() must be awaited
   const { userId } = await auth()
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
-  // Await the params Promise to get the ID
   const { id: jobId } = await context.params
+
+  const professionalProfile = await prisma.professional.findUnique({
+    where: { userId },
+  })
 
   const job = await prisma.job.findUnique({
     where: { id: jobId },
@@ -23,12 +25,8 @@ export async function GET(
           phone: true,
         },
       },
-      professional: {
-        select: {
-          userId: true,
-        },
-      },
-      booking: true,
+      bookings: true, 
+      assignments: true, 
       conversation: {
         include: {
           messages: {
@@ -48,8 +46,19 @@ export async function GET(
 
   if (!job) return Response.json({ error: "Job not found" }, { status: 404 })
 
-  if (job.professional?.userId !== userId)
-    return Response.json({ error: "Forbidden" }, { status: 403 })
+  const isBooked = job.bookings?.professionalId === professionalProfile?.id
+  const isAssigned = job.assignments.some(
+    (assignment) => assignment.professionalId === professionalProfile?.id
+  )
 
-  return Response.json(job)
+  if (!isBooked && !isAssigned) {
+    return Response.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  const responseData = {
+    ...job,
+    professional: professionalProfile ? { userId: professionalProfile.userId } : null,
+  }
+
+  return Response.json(responseData)
 }

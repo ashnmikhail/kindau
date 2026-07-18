@@ -1,71 +1,344 @@
-import { prisma } from "@/lib/prisma"
-import { auth } from "@clerk/nextjs/server"
+generator client {
+  provider = "prisma-client-js"
+}
 
-export async function GET(
-  req: Request,
-  context: { params: Promise<{ id: string }> }
-) {
-  // 1. Next.js 15 requires awaiting auth()
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 })
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
-  // 2. Next.js 15 requires awaiting params
-  const { id: jobId } = await context.params
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  email     String   @unique
+  phone     String?
+  name      String?
+  role      UserRole @default(CUSTOMER)
 
-  // 3. Find the professional profile associated with the logged-in user
-  const professionalProfile = await prisma.professional.findUnique({
-    where: { userId },
-  })
+  activities               Activity[]
+  bookings                 Booking[]
+  conversationParticipants ConversationParticipant[]
+  jobs                     Job[]
+  messages                 Message[]
+  notifications            Notification[]
+  notificationPreferences  NotificationPreferences?
+  professional             Professional?
+  reviews                  Review[]
+}
 
-  // 4. Fetch the job using relations that match your schema exactly
-  const job = await prisma.job.findUnique({
-    where: { id: jobId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-        },
-      },
-      bookings: true, // Fixed: schema uses plural 'bookings' for the Booking? relation
-      assignments: true, // Fetched to check authorization
-      conversation: {
-        include: {
-          messages: {
-            orderBy: { createdAt: "asc" },
-            take: 20,
-          },
-        },
-      },
-      subcategory: {
-        select: {
-          name: true,
-          category: { select: { name: true } },
-        },
-      },
-    },
-  })
+model Professional {
+  id                           String            @id @default(cuid())
+  createdAt                    DateTime          @default(now())
+  updatedAt                    DateTime          @updatedAt
+  deletedAt                    DateTime?
+  name                         String
+  email                        String            @unique
+  phone                        String?
+  bio                          String?
+  rating                       Float             @default(0)
+  ratingCount                  Int               @default(0)
+  isVerified                   Boolean           @default(false)
+  isActive                     Boolean           @default(true)
+  abn                          String?
+  businessName                 String?
+  onboardingCompleted          Boolean           @default(false)
+  onboardingStep               Int               @default(1)
+  profileImage                 String?
+  subscriptionCurrentPeriodEnd DateTime?
+  subscriptionId               String?
+  subscriptionStatus           String?
+  stripeCustomerId             String?           @unique
+  userId                       String            @unique
 
-  if (!job) return Response.json({ error: "Job not found" }, { status: 404 })
+  availability    Availability[]
+  bookings        Booking[]
+  jobAssignments  JobAssignment[]
+  jobOffers       JobOffer[]
+  user            User                   @relation(fields: [userId], references: [id])
+  categories      ProfessionalCategory[]
+  rotationStates  RotationState[]
+  serviceAreas    ServiceArea[]
+  reviews         Review[]
+}
 
-  // 5. Authorization: Check if this professional is assigned or booked for this job
-  const isBooked = job.bookings?.professionalId === professionalProfile?.id
-  const isAssigned = job.assignments.some(
-    (assignment) => assignment.professionalId === professionalProfile?.id
-  )
+model Category {
+  id            String                 @id @default(cuid())
+  name          String                 @unique
+  createdAt     DateTime               @default(now())
+  professionals ProfessionalCategory[]
+  subcategories Subcategory[]
+}
 
-  if (!isBooked && !isAssigned) {
-    return Response.json({ error: "Forbidden" }, { status: 403 })
-  }
+model Subcategory {
+  id         String   @id @default(cuid())
+  name       String
+  categoryId String
+  price      Decimal?
+  jobs       Job[]
+  category   Category @relation(fields: [categoryId], references: [id])
+}
 
-  // 6. Safe formatting: Add a virtual 'professional' property back onto the 
-  // response object so your frontend components won't crash looking for it.
-  const responseData = {
-    ...job,
-    professional: professionalProfile ? { userId: professionalProfile.userId } : null,
-  }
+model ProfessionalCategory {
+  id             String       @id @default(cuid())
+  professionalId String
+  categoryId     String
+  category       Category     @relation(fields: [categoryId], references: [id])
+  professional   Professional @relation(fields: [professionalId], references: [id])
 
-  return Response.json(responseData)
+  @@unique([professionalId, categoryId])
+}
+
+model ServiceArea {
+  id             String       @id @default(cuid())
+  professionalId String
+  suburb         String
+  postcode       String
+  state          String
+  professional   Professional @relation(fields: [professionalId], references: [id])
+
+  @@index([postcode])
+}
+
+model Availability {
+  id             String       @id @default(cuid())
+  professionalId String
+  dayOfWeek      Int
+  startTime      String
+  endTime        String
+  professional   Professional @relation(fields: [professionalId], references: [id])
+
+  @@index([professionalId, dayOfWeek])
+}
+
+model Job {
+  id            String          @id @default(cuid())
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  deletedAt     DateTime?
+  userId        String
+  subcategoryId String
+  description   String
+  suburb        String?
+  postcode      String?
+  price         Decimal?
+  status        JobStatus       @default(PENDING)
+  retryCount    Int             @default(0)
+  maxRetries    Int             @default(3)
+  lastRetryAt   DateTime?
+  user          User            @relation(fields: [userId], references: [id])
+  subcategory   Subcategory     @relation(fields: [subcategoryId], references: [id])
+  offers        JobOffer[]
+  assignments   JobAssignment[]
+  bookings      Booking?
+  activities    Activity[]
+  conversation  Conversation?
+  reviews       Review[]
+
+  @@index([userId])
+  @@index([subcategoryId])
+  @@index([status])
+}
+
+model JobOffer {
+  id             String       @id @default(cuid())
+  jobId          String
+  professionalId String
+  status         OfferStatus  @default(PENDING)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  expiresAt      DateTime
+  job            Job          @relation(fields: [jobId], references: [id])
+  professional   Professional @relation(fields: [professionalId], references: [id])
+
+  @@unique([jobId, professionalId])
+  @@index([professionalId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model Booking {
+  id             String        @id @default(cuid())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  jobId          String        @unique
+  customerId     String
+  professionalId String
+  scheduledDate  DateTime?
+  status         BookingStatus @default(CONFIRMED)
+  customer       User          @relation(fields: [customerId], references: [id])
+  job            Job           @relation(fields: [jobId], references: [id])
+  professional   Professional  @relation(fields: [professionalId], references: [id])
+
+  @@index([professionalId])
+  @@index([customerId])
+  @@index([status])
+}
+
+model JobAssignment {
+  id             String       @id @default(cuid())
+  jobId          String
+  professionalId String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  job            Job          @relation(fields: [jobId], references: [id])
+  professional   Professional @relation(fields: [professionalId], references: [id])
+
+  @@unique([jobId, professionalId])
+  @@index([jobId])
+  @@index([professionalId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String?
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([read])
+}
+
+model NotificationPreferences {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  emailOffers     Boolean  @default(true)
+  emailJobUpdates Boolean  @default(true)
+  emailMarketing  Boolean  @default(false)
+  inAppOffers     Boolean  @default(true)
+  inAppJobUpdates Boolean  @default(true)
+  doNotDisturb    Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id])
+}
+
+model RotationState {
+  id             String    @id @default(cuid())
+  professionalId String
+  categoryId     String
+  suburb         String
+  lastAssignedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  professional   Professional @relation(fields: [professionalId], references: [id])
+
+  @@unique([professionalId, categoryId, suburb])
+  @@index([categoryId, suburb])
+  @@index([professionalId])
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  jobId     String
+  userId    String?
+  type      String
+  message   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  job       Job      @relation(fields: [jobId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([jobId])
+  @@index([createdAt])
+}
+
+model Conversation {
+  id           String                    @id @default(cuid())
+  jobId        String                    @unique
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  job          Job                       @relation(fields: [jobId], references: [id])
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  userId         String
+  lastReadAt     DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+  body           String?
+  type           String       @default("text")
+  fileUrl        String?
+  fileName       String?
+  read           Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  sender         User         @relation(fields: [senderId], references: [id])
+
+  @@index([conversationId])
+  @@index([senderId])
+}
+
+model Review {
+  id              String       @id @default(cuid())
+  jobId           String
+  customerId      String
+  professionalId  String
+  communication   Int
+  reliability     Int
+  professionalism Int
+  quality         Int
+  comment         String?
+  createdAt       DateTime     @default(now())
+  job             Job          @relation(fields: [jobId], references: [id])
+  customer        User         @relation(fields: [customerId], references: [id])
+  professional    Professional @relation(fields: [professionalId], references: [id])
+
+  @@index([professionalId])
+  @@index([customerId])
+  @@index([jobId])
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum JobStatus {
+  PENDING
+  MATCHING
+  OFFERED
+  ASSIGNED
+  CONTACT_PENDING
+  BOOKED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  TIMED_OUT
 }
