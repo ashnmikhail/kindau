@@ -1,10 +1,12 @@
+import { prisma } from "@/lib/prisma"
+
 export async function notify(
   userId: string,
   email: string | null,
   subject: string,
   message: string,
   template: string,
-  link?: string   // ⭐ added
+  link?: string
 ) {
   const prefs = await prisma.notificationPreferences.findUnique({
     where: { userId },
@@ -15,8 +17,6 @@ export async function notify(
     if (email) await emailUser(email, subject, message)
     return
   }
-
-import { prisma } from "@/lib/prisma"
 
   if (prefs.doNotDisturb) return
 
