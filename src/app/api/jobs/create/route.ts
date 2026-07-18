@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { runRotationForJob } from "@/lib/rotation";
+import { logActivity } from "@/lib/activity";
+import { JobStatus } from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
@@ -31,22 +33,20 @@ export async function POST(req: Request) {
         suburb,
         postcode,
         price,
-        status: "PENDING",
+        status: JobStatus.PENDING,
       },
     });
 
     // 2. LOG ACTIVITY
-    await prisma.activity.create({
-      data: {
-        jobId: job.id,
-        userId,
-        type: "JOB_CREATED",
-        message: "Customer created a new job",
-      },
-    });
+    await logActivity(
+      job.id,
+      "JOB_CREATED",
+      "Customer created a new job",
+      userId
+    );
 
     // 3. TRIGGER ROTATION ENGINE
-    runRotationForJob(job.id);
+    await runRotationForJob(job.id);
 
     return NextResponse.json({ job });
   } catch (err) {

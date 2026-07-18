@@ -6,9 +6,22 @@ import { notify } from "@/lib/notify"
 export async function retryMatching(jobId: string) {
   const job = await prisma.job.findUnique({
     where: { id: jobId },
-    include: {
-      user: true,          // customer
-      subcategory: true,
+    select: {
+      id: true,
+      retryCount: true,
+      maxRetries: true,
+      suburb: true,
+      user: {
+        select: {
+          id: true,
+          email: true,
+        },
+      },
+      subcategory: {
+        select: {
+          categoryId: true,
+        },
+      },
     },
   })
 
@@ -49,7 +62,7 @@ export async function retryMatching(jobId: string) {
     null
   )
 
-  // 🔥 Notify customer that retry started
+  // Notify customer
   await notify(
     job.user.id,
     job.user.email,
@@ -59,7 +72,7 @@ export async function retryMatching(jobId: string) {
     `/dashboard/jobs/${job.id}`
   )
 
-  // 1. Find new professionals (fresh rotation)
+  // 1. Find new professionals
   const professionals = await prisma.professional.findMany({
     where: {
       categories: {
@@ -94,7 +107,7 @@ export async function retryMatching(jobId: string) {
       data: {
         jobId: job.id,
         professionalId: pro.id,
-        expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
       },
     })
 
@@ -105,7 +118,6 @@ export async function retryMatching(jobId: string) {
       pro.userId
     )
 
-    // Optional: notify tradie of retry offer
     await notify(
       pro.userId,
       pro.email,
