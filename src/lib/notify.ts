@@ -26,7 +26,7 @@ export async function notifyUser(userId: string, message: string) {
 }
 
 /**
- * Email notification (with footer link)
+ * Email notification
  */
 export async function emailUser(email: string, subject: string, body: string) {
   if (!email) return
@@ -35,14 +35,8 @@ export async function emailUser(email: string, subject: string, body: string) {
   if (!resend) return
 
   const footer = `
-    <hr style="margin:24px 0; border:none; border-top:1px solid #e5e5e5;" />
-    <p style="font-size:13px; color:#777;">
-      You are receiving this email based on your Kindau notification settings.<br/>
-      <a href="${process.env.NEXT_PUBLIC_APP_URL}/settings/notifications" 
-         style="color:#0f766e; text-decoration:underline;">
-        Manage notification preferences
-      </a>
-    </p>
+    <hr />
+    <p>You are receiving this email based on your Kindau notification settings.</p>
   `
 
   try {
@@ -58,7 +52,8 @@ export async function emailUser(email: string, subject: string, body: string) {
 }
 
 /**
- * Combined notification with user preferences
+ * ⭐ Step 2 — Preference‑aware notification wrapper
+ * THIS GOES HERE
  */
 export async function notify(
   userId: string,
@@ -80,12 +75,13 @@ export async function notify(
   if (prefs.doNotDisturb) return
 
   let allowEmail = true
+  let allowInApp = true
+
   if (template === "newOffer" && !prefs.emailOffers) allowEmail = false
   if (template === "offerAccepted" && !prefs.emailOffers) allowEmail = false
   if (template === "jobStarted" && !prefs.emailJobUpdates) allowEmail = false
   if (template === "jobCompleted" && !prefs.emailJobUpdates) allowEmail = false
 
-  let allowInApp = true
   if (template === "newOffer" && !prefs.inAppOffers) allowInApp = false
   if (template === "jobStarted" && !prefs.inAppJobUpdates) allowInApp = false
   if (template === "jobCompleted" && !prefs.inAppJobUpdates) allowInApp = false
