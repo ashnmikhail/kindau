@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import FindingClient from "./FindingClient";
-import type { PageProps } from "next";
 
-export default async function FindingPage({ params }: PageProps) {
+type FindingPageProps = {
+  params: Record<string, string>;
+};
+
+export default async function FindingPage({ params }: FindingPageProps) {
   const job = await prisma.job.findUnique({
     where: { id: params.id },
     include: {
