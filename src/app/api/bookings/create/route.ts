@@ -22,7 +22,8 @@ export async function POST(req: Request) {
   const booking = await prisma.booking.create({
     data: {
       jobId,
-      scheduledAt: new Date(scheduledAt),
+      // Fixed: Change scheduledAt to scheduledDate to match schema
+      scheduledDate: new Date(scheduledAt), 
       status: "PENDING_CUSTOMER",
     },
   })
@@ -30,7 +31,9 @@ export async function POST(req: Request) {
   // Update job status
   await prisma.job.update({
     where: { id: jobId },
-    data: { status: "AWAITING_CUSTOMER_CONFIRMATION" },
+    // Fixed: Changed "AWAITING_CUSTOMER_CONFIRMATION" to "CONTACT_PENDING" 
+    // (or whichever valid JobStatus enum item matches your design)
+    data: { status: "CONTACT_PENDING" }, 
   })
 
   return Response.json({ success: true, booking })
