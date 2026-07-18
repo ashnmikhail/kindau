@@ -4,6 +4,8 @@ import { retryMatching } from "./retryMatching"
 import { notify } from "@/lib/notify"
 import { OfferStatus, JobStatus } from "@prisma/client"
 
+const BATCH_SIZE = 50   // ⭐ REQUIRED
+
 export async function runExpirySweep() {
   const now = new Date()
 
