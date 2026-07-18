@@ -1,4 +1,10 @@
-export default async function JobPage({ params }) {
+type JobPageProps = {
+  params: {
+    jobId: string
+  }
+}
+
+export default async function JobPage({ params }: JobPageProps) {
   const job = await prisma.job.findUnique({
     where: { id: params.jobId },
     include: {
@@ -13,18 +19,14 @@ export default async function JobPage({ params }) {
 
   return (
     <div className="p-6 space-y-4">
-
-      {/* Job details */}
       <h1 className="text-xl font-semibold">
         {job.subcategory.category.name} — {job.subcategory.name}
       </h1>
 
       <p>Status: {job.status}</p>
 
-      {/* Tradie actions */}
       <JobActions job={job} />
 
-      {/* ⭐ Customer review prompt */}
       {job.status === "COMPLETED" && !job.review && job.userId === userId && (
         <div className="mt-6">
           <Link
@@ -35,7 +37,6 @@ export default async function JobPage({ params }) {
           </Link>
         </div>
       )}
-
     </div>
   )
 }
