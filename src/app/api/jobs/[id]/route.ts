@@ -1,79 +1,54 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma"
+import { auth } from "@clerk/nextjs/server"
 
 export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  req: Request,
+  { params }: { params: { id: string } }
 ) {
-  const { id: jobId } = await params;
+  const { userId } = auth()
+  if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 })
+
+  const jobId = params.id
 
   const job = await prisma.job.findUnique({
-    where: {
-      id: jobId,
-    },
+    where: { id: jobId },
     include: {
-      user: true,
-
-      conversation: true,
-
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+      professional: {
+        select: {
+          userId: true,
+        },
+      },
+      booking: true,
+      conversation: {
+        include: {
+          messages: {
+            orderBy: { createdAt: "asc" },
+            take: 20,
+          },
+        },
+      },
       subcategory: {
-        include: {
-          category: true,
-        },
-      },
-
-      offers: {
-        orderBy: {
-          createdAt: "desc",
-        },
-        include: {
-          professional: true,
-        },
-      },
-
-      assignments: {
-        include: {
-          professional: true,
+        select: {
+          name: true,
+          category: { select: { name: true } },
         },
       },
     },
-  });
+  })
 
-  if (!job || job.deletedAt) {
-    return NextResponse.json(
-      { error: "Not found" },
-      { status: 404 }
-    );
-  }
+  if (!job) return Response.json({ error: "Job not found" }, { status: 404 })
 
-  return NextResponse.json({
-    id: job.id,
+  // Ensure professional owns this job
+  if (job.professional?.userId !== userId)
+    return Response.json({ error: "Forbidden" }, { status: 403 })
 
-    category: job.subcategory.category.name,
-    service: job.subcategory.name,
-
-    description: job.description,
-
-    suburb: job.suburb,
-    postcode: job.postcode,
-
-    price: job.price,
-
-    status: job.status,
-
-    createdAt: job.createdAt,
-
-    customerId: job.userId,
-    customerName: job.user?.name ?? null,
-    customerEmail: job.user?.email ?? null,
-
-    conversationId: job.conversation?.id ?? null,
-
-    offerCount: job.offers.length,
-
-    assignedProfessional:
-      job.assignments[0]?.professional?.businessName ??
-      job.assignments[0]?.professional?.name ??
-      null,
-  });
+  return Response.json(job)
 }
