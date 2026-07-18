@@ -1,5 +1,20 @@
 import { prisma } from "@/lib/prisma"
 
+// In-app notification
+async function notifyUser(userId: string, message: string) {
+  await prisma.notification.create({
+    data: {
+      userId,
+      message,
+    },
+  })
+}
+
+// Email notification
+async function emailUser(email: string, subject: string, message: string) {
+  console.log(`Email to ${email}: ${subject} — ${message}`)
+}
+
 export async function notify(
   userId: string,
   email: string | null,
