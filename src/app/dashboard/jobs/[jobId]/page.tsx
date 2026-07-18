@@ -3,9 +3,17 @@ import Link from "next/link"
 import { auth } from "@clerk/nextjs/server"
 import { JobActions } from "./JobActions"
 
-export default async function JobPage({ params }: { params: { jobId: string } }) {
+// 1. Update params type to be a Promise
+export default async function JobPage({ 
+  params 
+}: { 
+  params: Promise<{ jobId: string }> 
+}) {
+  // 2. Await the params before using them
+  const resolvedParams = await params;
+  
   const job = await prisma.job.findUnique({
-    where: { id: params.jobId },
+    where: { id: resolvedParams.jobId },
     include: {
       review: true,
       user: true,
