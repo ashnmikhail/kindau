@@ -3,7 +3,7 @@ import Link from "next/link"
 import { auth } from "@clerk/nextjs/server"
 import { JobActions } from "./JobActions"
 
-export default async function JobPage({ params }) {
+export default async function JobPage({ params }: { params: { jobId: string } }) {
   const job = await prisma.job.findUnique({
     where: { id: params.jobId },
     include: {
