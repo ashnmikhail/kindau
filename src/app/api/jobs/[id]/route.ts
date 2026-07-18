@@ -3,12 +3,14 @@ import { auth } from "@clerk/nextjs/server"
 
 export async function GET(
   req: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = auth()
+  // In Next.js 15, Clerk's auth() must be awaited
+  const { userId } = await auth()
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
-  const jobId = context.params.id
+  // Await the params Promise to get the ID
+  const { id: jobId } = await context.params
 
   const job = await prisma.job.findUnique({
     where: { id: jobId },
