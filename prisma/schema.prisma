@@ -57,6 +57,7 @@ model Professional {
   bookings        Booking[]
   jobAssignments  JobAssignment[]
   jobOffers       JobOffer[]
+  jobs            Job[]                     // ⭐ REQUIRED BACK-RELATION
   user            User                   @relation(fields: [userId], references: [id])
   categories      ProfessionalCategory[]
   rotationStates  RotationState[]
@@ -128,8 +129,12 @@ model Job {
   retryCount    Int             @default(0)
   maxRetries    Int             @default(3)
   lastRetryAt   DateTime?
-  user          User            @relation(fields: [userId], references: [id])
-  subcategory   Subcategory     @relation(fields: [subcategoryId], references: [id])
+
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id])
+
+  user          User        @relation(fields: [userId], references: [id])
+  subcategory   Subcategory @relation(fields: [subcategoryId], references: [id])
   offers        JobOffer[]
   assignments   JobAssignment[]
   bookings      Booking?
