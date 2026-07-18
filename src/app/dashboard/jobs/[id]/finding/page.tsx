@@ -2,14 +2,14 @@ import { prisma } from "@/lib/prisma";
 import FindingClient from "./FindingClient";
 
 type FindingPageProps = {
-  params: { id: string } | Promise<{ id: string }>;
+  params: Promise<{ id: string }>;
 };
 
 export default async function FindingPage({ params }: FindingPageProps) {
-  const resolved = await params; // handles both object and Promise
+  const { id } = await params; 
 
   const job = await prisma.job.findUnique({
-    where: { id: resolved.id },
+    where: { id },
     include: {
       subcategory: {
         include: { category: true },

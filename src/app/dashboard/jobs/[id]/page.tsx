@@ -2,14 +2,14 @@ import { prisma } from "@/lib/prisma";
 import AssignedClient from "./AssignedClient";
 
 type JobPageProps = {
-  params: { id: string } | Promise<{ id: string }>;
+  params: Promise<{ id: string }>;
 };
 
 export default async function JobPage({ params }: JobPageProps) {
-  const resolved = await params;
+  const { id } = await params;
 
   const job = await prisma.job.findUnique({
-    where: { id: resolved.id },
+    where: { id },
     include: {
       assignments: {
         include: {
