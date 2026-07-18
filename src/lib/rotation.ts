@@ -3,6 +3,7 @@ import { expandRadiusPostcodes } from "./radius";
 
 /**
  * MAIN ROTATION ENGINE
+ * Called when a job is created OR when a tradie declines.
  */
 export async function runRotationForJob(jobId: string) {
   const job = await prisma.job.findUnique({
@@ -18,7 +19,9 @@ export async function runRotationForJob(jobId: string) {
 
   const categoryId = job.subcategory.categoryId;
   const jobPostcode = job.postcode ?? "";
+  const jobSuburb = job.suburb ?? "";
 
+  // Radius rings: 1 = local, 2 = nearby, 3 = extended, 4 = citywide
   const rings = [1, 2, 3, 4];
 
   for (const ring of rings) {
@@ -28,13 +31,14 @@ export async function runRotationForJob(jobId: string) {
 
     if (!tradies.length) continue;
 
-    const ordered = await orderByRotation(tradies, categoryId, job.suburb ?? "");
+    const ordered = await orderByRotation(tradies, categoryId, jobSuburb);
 
     const offered = await offerToFirstTradie(job, ordered);
 
-    if (offered) return;
+    if (offered) return; // job offer successfully sent
   }
 
+  // No tradie accepted in any ring
   await prisma.job.update({
     where: { id: jobId },
     data: { status: "EXPIRED" },
@@ -43,6 +47,7 @@ export async function runRotationForJob(jobId: string) {
 
 /**
  * GET ELIGIBLE TRADIES
+ * Filters by category, service area, subscription, active status.
  */
 async function getEligibleTradies(categoryId: string, postcodes: string[]) {
   return prisma.professional.findMany({
@@ -62,6 +67,8 @@ async function getEligibleTradies(categoryId: string, postcodes: string[]) {
 
 /**
  * ORDER TRADIES BY LAST ASSIGNMENT
+ * Oldest lastAssignedAt gets job first.
+ * Null lastAssignedAt = highest priority.
  */
 async function orderByRotation(
   tradies: { id: string }[],
@@ -95,7 +102,7 @@ async function offerToFirstTradie(job: any, ordered: any[]) {
       jobId: job.id,
       professionalId: first.professionalId,
       status: "PENDING",
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes expiry
     },
   });
 
@@ -154,6 +161,7 @@ export async function handleOfferDecline(offerId: string) {
 
 /**
  * MOVE TRADIE TO BOTTOM OF ROTATION
+ * We update lastAssignedAt for ALL rotation rows for this tradie.
  */
 export async function bumpProfessionalToBottom(professionalId: string) {
   await prisma.rotationState.updateMany({
