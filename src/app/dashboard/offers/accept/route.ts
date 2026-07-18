@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@clerk/nextjs/server"
 
 export async function POST(req: Request) {
-  const { userId } = auth()
+  // Await the asynchronous auth() call for Next.js 15 compatibility
+  const { userId } = await auth()
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
   const { offerId } = await req.json()
