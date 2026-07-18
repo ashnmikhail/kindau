@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@clerk/nextjs/server"
 
 export async function POST(req: Request) {
-  const { userId } = auth()
+  const { userId } = await auth()
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
   const { offerId } = await req.json()
