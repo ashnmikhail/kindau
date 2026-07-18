@@ -134,6 +134,11 @@ model Job {
 
   status       JobStatus @default(PENDING)
 
+  // ⭐ Retry system
+  retryCount   Int      @default(0)
+  maxRetries   Int      @default(3)
+  lastRetryAt  DateTime?
+
   user        User        @relation(fields: [userId], references: [id])
   subcategory Subcategory @relation(fields: [subcategoryId], references: [id])
 
