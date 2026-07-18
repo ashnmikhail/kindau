@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import { auth } from "@clerk/nextjs/server"
-import JobActions from "./JobActions"
+import { JobActions } from "./JobActions"
 
 export default async function JobPage({ params }) {
   const job = await prisma.job.findUnique({
