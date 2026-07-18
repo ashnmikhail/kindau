@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-export default function AssignedClient({ job }) {
+type AssignedClientProps = {
+  job: any; // minimal fix to satisfy TypeScript for now
+};
+
+export default function AssignedClient({ job }: AssignedClientProps) {
   const [currentJob, setCurrentJob] = useState(job);
 
   useEffect(() => {
