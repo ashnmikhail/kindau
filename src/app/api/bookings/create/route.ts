@@ -14,25 +14,31 @@ export async function POST(req: Request) {
 
   if (!job) return Response.json({ error: "Job not found" }, { status: 404 })
 
-  // Ensure professional owns this job
-  if (job.professional?.userId !== userId)
+  // Ensure professional owns this job and exists
+  if (!job.professional || job.professional.userId !== userId)
     return Response.json({ error: "Forbidden" }, { status: 403 })
 
   // Create booking
   const booking = await prisma.booking.create({
     data: {
-      jobId,
-      // Fixed: Change scheduledAt to scheduledDate to match schema
       scheduledDate: new Date(scheduledAt), 
       status: "PENDING_CUSTOMER",
+      // Connect the required relationships using IDs
+      job: {
+        connect: { id: jobId }
+      },
+      customer: {
+        connect: { id: job.userId } // The user who created the job is the customer
+      },
+      professional: {
+        connect: { id: job.professional.id } // The professional assigned to the job
+      }
     },
   })
 
   // Update job status
   await prisma.job.update({
     where: { id: jobId },
-    // Fixed: Changed "AWAITING_CUSTOMER_CONFIRMATION" to "CONTACT_PENDING" 
-    // (or whichever valid JobStatus enum item matches your design)
     data: { status: "CONTACT_PENDING" }, 
   })
 
