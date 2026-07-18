@@ -28,6 +28,7 @@ export default function JobDetailsPage() {
       <Header job={job} />
       <CustomerInfo job={job} />
       <BookingInfo job={job} />
+      <BookingScheduler job={job} />   {/* ⭐ Added */}
       <Conversation job={job} />
     </div>
   )
@@ -75,6 +76,52 @@ function BookingInfo({ job }: { job: any }) {
       <h2 className="text-lg font-semibold mb-2">Booking</h2>
       <p>Scheduled: {new Date(booking.scheduledAt).toLocaleString()}</p>
       <p>Status: {booking.status}</p>
+    </div>
+  )
+}
+
+function BookingScheduler({ job }: { job: any }) {
+  const [date, setDate] = useState("")
+  const [time, setTime] = useState("")
+
+  // If booking already exists, hide scheduler
+  if (job.booking) return null
+
+  async function submit() {
+    const scheduledAt = new Date(`${date}T${time}:00`)
+
+    await fetch("/api/bookings/create", {
+      method: "POST",
+      body: JSON.stringify({ jobId: job.id, scheduledAt }),
+    })
+
+    location.reload()
+  }
+
+  return (
+    <div className="border rounded-lg p-4 bg-white shadow-sm">
+      <h2 className="text-lg font-semibold mb-2">Propose Booking</h2>
+
+      <input
+        type="date"
+        className="border p-2 rounded w-full mb-2"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+      />
+
+      <input
+        type="time"
+        className="border p-2 rounded w-full mb-2"
+        value={time}
+        onChange={(e) => setTime(e.target.value)}
+      />
+
+      <button
+        onClick={submit}
+        className="px-4 py-2 bg-blue-600 text-white rounded-md"
+      >
+        Propose Booking
+      </button>
     </div>
   )
 }
