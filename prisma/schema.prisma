@@ -334,6 +334,7 @@ enum JobStatus {
 
 enum BookingStatus {
   PENDING
+  PENDING_CUSTOMER
   CONFIRMED
   IN_PROGRESS
   COMPLETED
