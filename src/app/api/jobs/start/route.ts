@@ -3,9 +3,15 @@ import { prisma } from "@/lib/prisma"
 import { notify } from "@/lib/notify"
 import { logActivity } from "@/lib/activity"
 import { JobStatus } from "@prisma/client"
+import { auth } from "@clerk/nextjs/server"
 
 export async function POST(req: Request) {
   try {
+    const { userId } = await auth()
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const { jobId } = await req.json()
 
     if (!jobId) {
@@ -36,6 +42,11 @@ export async function POST(req: Request) {
     }
 
     const professional = assignment.professional
+
+    // ⭐ SECURITY FIX: Ensure logged-in user is the assigned professional
+    if (professional.userId !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
     // Update job status
     await prisma.job.update({

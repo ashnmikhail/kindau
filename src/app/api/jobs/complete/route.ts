@@ -1,74 +1,39 @@
-import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { notify } from "@/lib/notify"
-import { logActivity } from "@/lib/activity"
-import { JobStatus } from "@prisma/client"
+import { auth } from "@clerk/nextjs/server"
 
 export async function POST(req: Request) {
-  try {
-    const { jobId } = await req.json()
+  const { userId } = await auth()
+  if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
-    if (!jobId) {
-      return NextResponse.json({ error: "Missing jobId" }, { status: 400 })
-    }
+  const { jobId } = await req.json()
 
-    const job = await prisma.job.findUnique({
-      where: { id: jobId },
-      include: {
-        user: true, // customer
-        assignments: {
-          include: {
-            professional: {
-              include: { user: true },
-            },
-          },
-        },
-      },
-    })
+  const job = await prisma.job.findUnique({
+    where: { id: jobId },
+    include: { professional: true },
+  })
 
-    if (!job) {
-      return NextResponse.json({ error: "Job not found" }, { status: 404 })
-    }
+  if (!job) return Response.json({ error: "Job not found" }, { status: 404 })
 
-    const assignment = job.assignments[0]
-    if (!assignment) {
-      return NextResponse.json({ error: "Job has no assigned professional" }, { status: 400 })
-    }
+  // Ensure tradie owns this job
+  if (!job.professional || job.professional.userId !== userId)
+    return Response.json({ error: "Forbidden" }, { status: 403 })
 
-    const professional = assignment.professional
+  if (job.status !== "IN_PROGRESS")
+    return Response.json({ error: "Job not in progress" }, { status: 400 })
 
-    // Update job status
-    await prisma.job.update({
-      where: { id: jobId },
-      data: { status: JobStatus.COMPLETED },
-    })
+  await prisma.job.update({
+    where: { id: jobId },
+    data: { status: "COMPLETED" },
+  })
 
-    // Log activity
-    await logActivity(jobId, "JOB_COMPLETED", "Job completed", professional.userId)
+  await prisma.activity.create({
+    data: {
+      jobId,
+      type: "JOB_COMPLETED",
+      message: "Professional completed the job",
+      userId,
+    },
+  })
 
-    // Notify customer
-    await notify(
-      job.user.id,
-      job.user.email,
-      "Job Completed",
-      "Your job has been completed",
-      "jobCompleted",
-      `/dashboard/jobs/${jobId}`
-    )
-
-    // Notify professional
-    await notify(
-      professional.user.id,
-      professional.user.email,
-      "Job Completed",
-      "You have completed the job",
-      "jobCompleted",
-      `/dashboard/jobs/${jobId}`
-    )
-
-    return NextResponse.json({ ok: true })
-  } catch (err) {
-    console.error("Job completion error:", err)
-    return NextResponse.json({ error: "Failed to complete job" }, { status: 500 })
-  }
+  return Response.json({ success: true })
 }
