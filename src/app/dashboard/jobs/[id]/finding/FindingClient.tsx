@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-export default function FindingClient({ job }) {
+type FindingClientProps = {
+  job: any; // minimal fix to satisfy TypeScript for now
+};
+
+export default function FindingClient({ job }: FindingClientProps) {
   const [status, setStatus] = useState(job.status);
 
   useEffect(() => {

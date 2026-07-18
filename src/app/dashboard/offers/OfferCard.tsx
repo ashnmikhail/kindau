@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 
-export default function OfferCard({ offer }) {
+type OfferCardProps = {
+  offer: any; // minimal fix to satisfy TypeScript for now
+};
+
+export default function OfferCard({ offer }: OfferCardProps) {
   const [loading, setLoading] = useState(false);
 
   async function accept() {
