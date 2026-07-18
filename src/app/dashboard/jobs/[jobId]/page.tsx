@@ -3,19 +3,17 @@ import Link from "next/link"
 import { auth } from "@clerk/nextjs/server"
 import { JobActions } from "./JobActions"
 
-// 1. Update params type to be a Promise
 export default async function JobPage({ 
   params 
 }: { 
   params: Promise<{ jobId: string }> 
 }) {
-  // 2. Await the params before using them
   const resolvedParams = await params;
   
   const job = await prisma.job.findUnique({
     where: { id: resolvedParams.jobId },
     include: {
-      review: true,
+      reviews: true, // 1. Changed from 'review' to 'reviews'
       user: true,
       professional: true,
       subcategory: { include: { category: true } },
@@ -28,6 +26,11 @@ export default async function JobPage({
 
   const { userId } = await auth()
 
+  // 2. Adjust the review check based on your schema structure:
+  // If a job can have multiple reviews, check if the array is empty: job.reviews.length === 0
+  // If it's a 1-to-1 relation but named plural, use: !job.reviews
+  const hasNoReview = Array.isArray(job.reviews) ? job.reviews.length === 0 : !job.reviews;
+
   return (
     <div className="p-6 space-y-4">
       <h1 className="text-xl font-semibold">
@@ -38,7 +41,7 @@ export default async function JobPage({
 
       <JobActions job={job} />
 
-      {job.status === "COMPLETED" && !job.review && job.userId === userId && (
+      {job.status === "COMPLETED" && hasNoReview && job.userId === userId && (
         <div className="mt-6">
           <Link
             href={`/dashboard/reviews/create?jobId=${job.id}`}
