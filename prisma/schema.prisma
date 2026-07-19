@@ -299,12 +299,10 @@ model Review {
   jobId           String
   customerId      String
   professionalId  String
-  communication   Int
-  reliability     Int
-  professionalism Int
-  quality         Int
+  rating          Int
   comment         String?
   createdAt       DateTime     @default(now())
+
   job             Job          @relation(fields: [jobId], references: [id])
   customer        User         @relation(fields: [customerId], references: [id])
   professional    Professional @relation(fields: [professionalId], references: [id])
