@@ -9,17 +9,27 @@ export async function POST(req: Request) {
   const form = await req.formData();
   const selected = form.getAll("subcategoryIds") as string[];
 
-  // Remove all existing categories
+  // Remove existing categories
   await prisma.professionalCategory.deleteMany({
     where: { professionalId: clerkId },
   });
 
-  // Add new selected categories
   if (selected.length > 0) {
+    // Fetch all selected subcategories so we can get their categoryId
+    const subs = await prisma.subcategory.findMany({
+      where: { id: { in: selected } },
+      select: { id: true, categoryId: true },
+    });
+
+    // Insert category rows (unique per category)
+    const uniqueCategoryIds = Array.from(
+      new Set(subs.map((s) => s.categoryId))
+    );
+
     await prisma.professionalCategory.createMany({
-      data: selected.map((subId) => ({
+      data: uniqueCategoryIds.map((categoryId) => ({
         professionalId: clerkId,
-        subcategoryId: subId,
+        categoryId,
       })),
     });
   }

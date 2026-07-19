@@ -13,17 +13,14 @@ export default async function OnboardingSkillsPage() {
 
   if (!professional) redirect("/tradies");
 
-  // Redirect if onboarding is ahead
   if (professional.onboardingStep > 4) {
     redirect("/tradies/onboarding/service-area");
   }
 
-  // Redirect if behind
   if (professional.onboardingStep < 4) {
     redirect("/tradies/onboarding/business");
   }
 
-  // Fetch all categories + subcategories
   const categories = await prisma.category.findMany({
     include: { subcategories: true },
   });
@@ -52,10 +49,10 @@ export default async function OnboardingSkillsPage() {
                 <label key={sub.id} className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    name="subcategoryIds"
-                    value={sub.id}
+                    name="categoryIds"
+                    value={cat.id} // ✔ FIXED: submit categoryId
                     defaultChecked={professional.categories.some(
-                      (c) => c.subcategoryId === sub.id
+                      (c) => c.categoryId === cat.id
                     )}
                   />
                   <span>{sub.name}</span>
