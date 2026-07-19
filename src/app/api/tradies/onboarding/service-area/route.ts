@@ -7,12 +7,12 @@ export async function POST(req: Request) {
   if (!clerkId) return NextResponse.redirect("/sign-in");
 
   const form = await req.formData();
-  const areasRaw = form.get("areas") as string;
+  const raw = form.get("areas") as string;
 
-  const areas = areasRaw
-    .split(",")
-    .map((a) => a.trim())
-    .filter((a) => a.length > 0);
+  const lines = raw
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
 
   // Remove existing service areas
   await prisma.serviceArea.deleteMany({
@@ -20,12 +20,22 @@ export async function POST(req: Request) {
   });
 
   // Insert new service areas
-  if (areas.length > 0) {
-    await prisma.serviceArea.createMany({
-      data: areas.map((name) => ({
+  for (const line of lines) {
+    const parts = line.split(" ").filter((p) => p.length > 0);
+
+    if (parts.length < 3) continue;
+
+    const suburb = parts[0];
+    const postcode = parts[1];
+    const state = parts.slice(2).join(" "); // handles multi-word states
+
+    await prisma.serviceArea.create({
+      data: {
         professionalId: clerkId,
-        name,
-      })),
+        suburb,
+        postcode,
+        state,
+      },
     });
   }
 

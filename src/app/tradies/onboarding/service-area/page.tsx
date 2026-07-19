@@ -13,24 +13,17 @@ export default async function OnboardingServiceAreaPage() {
 
   if (!professional) redirect("/tradies");
 
-  // Redirect if onboarding is ahead
-  if (professional.onboardingStep > 5) {
-    redirect("/tradies/onboarding/availability");
-  }
-
-  // Redirect if behind
-  if (professional.onboardingStep < 5) {
-    redirect("/tradies/onboarding/skills");
-  }
+  if (professional.onboardingStep > 5) redirect("/tradies/onboarding/availability");
+  if (professional.onboardingStep < 5) redirect("/tradies/onboarding/skills");
 
   return (
     <div className="max-w-xl mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-kindau-teal">
-        Service Areas
-      </h1>
+      <h1 className="text-3xl font-bold text-kindau-teal">Service Areas</h1>
 
       <p className="text-gray-600">
-        Add the suburbs or postcodes where you want to receive jobs.
+        Enter each service area on a new line in the format:
+        <br />
+        <strong>Suburb Postcode State</strong>
       </p>
 
       <form
@@ -38,22 +31,15 @@ export default async function OnboardingServiceAreaPage() {
         method="POST"
         className="space-y-4"
       >
-        <div>
-          <label className="block text-sm font-medium">
-            Suburbs / Postcodes (comma separated)
-          </label>
-          <textarea
-            name="areas"
-            defaultValue={
-              professional.serviceAreas
-                .map((a) => a.name)
-                .join(", ")
-            }
-            required
-            className="w-full border rounded px-3 py-2"
-            rows={4}
-          />
-        </div>
+        <textarea
+          name="areas"
+          defaultValue={professional.serviceAreas
+            .map((a) => `${a.suburb} ${a.postcode} ${a.state}`)
+            .join("\n")}
+          required
+          className="w-full border rounded px-3 py-2"
+          rows={6}
+        />
 
         <button
           type="submit"
