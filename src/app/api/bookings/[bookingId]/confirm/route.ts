@@ -3,13 +3,13 @@ import { auth } from "@clerk/nextjs/server";
 
 export async function POST(
   req: Request,
-  { params }: { params: { bookingId: string } }
+  context: { params: { bookingId: string } }
 ) {
+  const { bookingId } = context.params;
+
   const { userId } = await auth();
   if (!userId)
     return Response.json({ error: "Unauthorized" }, { status: 401 });
-
-  const { bookingId } = params;
 
   // Load booking + job + professional
   const booking = await prisma.booking.findUnique({
