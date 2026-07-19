@@ -3,9 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 
 export async function POST(
   req: Request,
-  context: { params: { bookingId: string } }
+  context: { params: Promise<{ bookingId: string }> } // 1. Turned params into a Promise
 ) {
-  const { bookingId } = context.params;
+  const { bookingId } = await context.params; // 2. Added await here
 
   const { userId } = await auth();
   if (!userId)
