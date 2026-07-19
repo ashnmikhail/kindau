@@ -8,9 +8,10 @@ export async function GET() {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   // 1. Active job (any job not completed/cancelled/expired)
+  // FIXED: Changed customerId to userId
   const activeJob = await prisma.job.findFirst({
     where: {
-      customerId: userId,
+      userId: userId, 
       status: { 
         in: [
           JobStatus.OPEN, 
@@ -40,6 +41,7 @@ export async function GET() {
   }
 
   // 3. Pending actions
+  // NOTE: Booking model DOES use customerId, so this stays as is!
   const pendingActions = await prisma.booking.findMany({
     where: {
       customerId: userId,
@@ -83,9 +85,10 @@ export async function GET() {
   );
 
   // 5. Past jobs
+  // FIXED: Changed customerId to userId
   const pastJobs = await prisma.job.findMany({
     where: {
-      customerId: userId,
+      userId: userId,
       status: { 
         in: [
           JobStatus.COMPLETED, 
