@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { expandRadiusPostcodes } from "./radius";
 import { matchTradies } from "@/lib/matching/matchTradies";
+import { hasConflict } from "@/lib/conflicts";
 
 /**
  * MAIN ROTATION ENGINE
@@ -52,7 +53,7 @@ export async function runRotationForJob(jobId: string) {
 
 /**
  * GET ELIGIBLE TRADIES
- * Uses matching engine + radius filter.
+ * Uses matching engine + radius filter + conflict detection.
  */
 async function getEligibleTradies(job: any, postcodes: string[]) {
   const categoryId = job.subcategory.categoryId;
@@ -62,12 +63,27 @@ async function getEligibleTradies(job: any, postcodes: string[]) {
     subcategoryId: job.subcategoryId,
     suburb: job.suburb ?? undefined,
     postcode: job.postcode ?? undefined,
-    dayOfWeek: new Date().getDay(), // TODO: replace with job.requestedDay
-    startTime: "09:00",             // TODO: replace with job.startTime
-    endTime: "17:00",               // TODO: replace with job.endTime
+    dayOfWeek: job.requestedDay!,
+    startTime: job.startTime!,
+    endTime: job.endTime!,
   });
 
-  return matched.filter((t) =>
+  const filtered: any[] = [];
+
+  for (const t of matched) {
+    const conflict = await hasConflict(
+      t.id,
+      job.requestedDay!,
+      job.startTime!,
+      job.endTime!
+    );
+
+    if (!conflict) {
+      filtered.push(t);
+    }
+  }
+
+  return filtered.filter((t) =>
     t.serviceAreas.some((a) => a.postcode && postcodes.includes(a.postcode))
   );
 }
@@ -127,9 +143,26 @@ async function offerToFirstTradie(job: any, ordered: any[]) {
 export async function handleOfferAcceptance(offerId: string) {
   const offer = await prisma.jobOffer.findUnique({
     where: { id: offerId },
+    include: { job: true },
   });
 
-  if (!offer) return;
+  if (!offer || !offer.job) return;
+
+  // Prevent accepting overlapping jobs
+  const conflict = await hasConflict(
+    offer.professionalId,
+    offer.job.requestedDay!,
+    offer.job.startTime!,
+    offer.job.endTime!
+  );
+
+  if (conflict) {
+    await prisma.jobOffer.update({
+      where: { id: offerId },
+      data: { status: "TIMED_OUT" },
+    });
+    return;
+  }
 
   await prisma.jobAssignment.create({
     data: {
