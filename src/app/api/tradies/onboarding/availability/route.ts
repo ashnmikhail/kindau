@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       await prisma.availability.create({
         data: {
           professionalId: clerkId,
-          day,
+          dayOfWeek: DAYS.indexOf(day), // <-- FIXED
           startTime: start,
           endTime: end,
         },
