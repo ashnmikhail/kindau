@@ -23,12 +23,10 @@ export default async function OnboardingAvailabilityPage() {
 
   if (!professional) redirect("/tradies");
 
-  // Redirect if onboarding is ahead
   if (professional.onboardingStep > 6) {
     redirect("/tradies/onboarding/verify");
   }
 
-  // Redirect if behind
   if (professional.onboardingStep < 6) {
     redirect("/tradies/onboarding/service-area");
   }
@@ -50,7 +48,7 @@ export default async function OnboardingAvailabilityPage() {
       >
         {DAYS.map((day) => {
           const existing = professional.availability.find(
-            (a) => a.day === day
+            (a) => a.dayOfWeek === DAYS.indexOf(day) // ✔ FIXED
           );
 
           return (
