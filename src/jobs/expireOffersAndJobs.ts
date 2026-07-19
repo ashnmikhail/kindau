@@ -56,17 +56,17 @@ export async function runExpirySweep() {
 
     await logActivity(job.id, "JOB_EXPIRED", "Job expired due to no active offers")
 
-    // 🔥 Notify customer
-    await notify(
-      job.user.id,
-      job.user.email,
-      "Job Expired",
-      "Your job expired due to no active offers",
-      "jobExpired",
-      `/dashboard/jobs/${job.id}`
-    )
+    // Notify customer
+    await notify({
+      userId: job.user.id,
+      email: job.user.email,
+      title: "Job Expired",
+      body: "Your job expired due to no active offers",
+      type: "jobExpired",
+      template: "jobExpired",
+    })
 
-    // 🔥 Trigger retry
+    // Trigger retry
     await retryMatching(job.id)
   }
 

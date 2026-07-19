@@ -31,14 +31,14 @@ export async function retryMatching(jobId: string) {
   if (job.retryCount >= job.maxRetries) {
     await logActivity(job.id, "MATCHING_FAILED", "Max retries reached", null)
 
-    await notify(
-      job.user.id,
-      job.user.email,
-      "Matching Failed",
-      "We could not find any available professionals after multiple retries.",
-      "jobRetry",
-      `/dashboard/jobs/${job.id}`
-    )
+    await notify({
+      userId: job.user.id,
+      email: job.user.email,
+      title: "Matching Failed",
+      body: "We could not find any available professionals after multiple retries.",
+      type: "jobRetry",
+      template: "jobRetry",
+    })
 
     return
   }
@@ -63,16 +63,16 @@ export async function retryMatching(jobId: string) {
   )
 
   // Notify customer
-  await notify(
-    job.user.id,
-    job.user.email,
-    "Retrying Job",
-    `Retry #${retryNumber} started — we're trying again to find a professional.`,
-    "jobRetry",
-    `/dashboard/jobs/${job.id}`
-  )
+  await notify({
+    userId: job.user.id,
+    email: job.user.email,
+    title: "Retrying Job",
+    body: `Retry #${retryNumber} started — we're trying again to find a professional.`,
+    type: "jobRetry",
+    template: "jobRetry",
+  })
 
-  // 1. Find new professionals
+  // 1. Find new professionals (Updated to include nested user configuration for emails)
   const professionals = await prisma.professional.findMany({
     where: {
       categories: {
@@ -83,20 +83,23 @@ export async function retryMatching(jobId: string) {
         : undefined,
       isActive: true,
     },
+    include: {
+      user: true, 
+    },
     take: 10,
   })
 
   if (professionals.length === 0) {
     await logActivity(job.id, "MATCHING_FAILED", "No professionals available", null)
 
-    await notify(
-      job.user.id,
-      job.user.email,
-      "No Professionals Available",
-      "We couldn't find any available professionals in your area. We'll try again soon.",
-      "jobRetry",
-      `/dashboard/jobs/${job.id}`
-    )
+    await notify({
+      userId: job.user.id,
+      email: job.user.email,
+      title: "No Professionals Available",
+      body: "We couldn't find any available professionals in your area. We'll try again soon.",
+      type: "jobRetry",
+      template: "jobRetry",
+    })
 
     return
   }
@@ -118,14 +121,14 @@ export async function retryMatching(jobId: string) {
       pro.userId
     )
 
-    await notify(
-      pro.userId,
-      pro.email,
-      "New Job Offer",
-      `A job has been retried and you have received a new offer.`,
-      "newOffer",
-      `/dashboard/offers`
-    )
+    await notify({
+      userId: pro.user.id,
+      email: pro.user.email,
+      title: "New Job Offer",
+      body: `A job has been retried and you have received a new offer.`,
+      type: "newOffer",
+      template: "newOffer",
+    })
   }
 
   return { retry: retryNumber, offers: professionals.length }
