@@ -36,13 +36,14 @@ export async function checkOfferExpiry(jobId: string) {
     });
 
     // 3. Notify customer
-    await notify(
-      offer.job.userId,
-      offer.job.user.email,
-      "Offer Expired",
-      "The professional did not respond in time. We are contacting the next available professional.",
-      "offerExpired"
-    );
+    await notify({
+      userId: offer.job.userId,
+      email: offer.job.user.email,
+      title: "Offer Expired",
+      body: "The professional did not respond in time. We are contacting the next available professional.",
+      type: "offerExpired",
+      template: "offerExpired",
+    });
 
     // 4. Move to next professional
     await matchJob(jobId);
