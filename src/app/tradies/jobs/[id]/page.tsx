@@ -2,12 +2,14 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
+// Next.js 15 requires params to be a Promise
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function TradieJobPage({ params }: PageProps) {
-  const { id } = params;
+  // Await the params before destructuring
+  const { id } = await params;
 
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
