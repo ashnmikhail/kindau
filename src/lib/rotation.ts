@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { expandRadiusPostcodes } from "./radius";
+import { matchTradies } from "@/lib/matching/matchTradies";
 
 /**
  * MAIN ROTATION ENGINE
@@ -27,11 +28,15 @@ export async function runRotationForJob(jobId: string) {
   for (const ring of rings) {
     const postcodes = expandRadiusPostcodes(jobPostcode, ring);
 
-    const tradies = await getEligibleTradies(categoryId, postcodes);
+    const tradies = await getEligibleTradies(job, postcodes);
 
     if (!tradies.length) continue;
 
-    const ordered = await orderByRotation(tradies, categoryId, jobSuburb);
+    const ordered = await orderByRotation(
+      tradies.map((t) => ({ id: t.id })),
+      categoryId,
+      jobSuburb
+    );
 
     const offered = await offerToFirstTradie(job, ordered);
 
@@ -47,22 +52,24 @@ export async function runRotationForJob(jobId: string) {
 
 /**
  * GET ELIGIBLE TRADIES
- * Filters by category, service area, subscription, active status.
+ * Uses matching engine + radius filter.
  */
-async function getEligibleTradies(categoryId: string, postcodes: string[]) {
-  return prisma.professional.findMany({
-    where: {
-      isActive: true,
-      subscriptionStatus: "active",
-      categories: { some: { categoryId } },
-      serviceAreas: {
-        some: {
-          postcode: { in: postcodes },
-        },
-      },
-    },
-    select: { id: true },
+async function getEligibleTradies(job: any, postcodes: string[]) {
+  const categoryId = job.subcategory.categoryId;
+
+  const matched = await matchTradies({
+    categoryId,
+    subcategoryId: job.subcategoryId,
+    suburb: job.suburb ?? undefined,
+    postcode: job.postcode ?? undefined,
+    dayOfWeek: new Date().getDay(), // TODO: replace with job.requestedDay
+    startTime: "09:00",             // TODO: replace with job.startTime
+    endTime: "17:00",               // TODO: replace with job.endTime
   });
+
+  return matched.filter((t) =>
+    t.serviceAreas.some((a) => a.postcode && postcodes.includes(a.postcode))
+  );
 }
 
 /**
