@@ -38,25 +38,25 @@ export async function POST(req: Request) {
     // Accept the offer + assign job
     await handleOfferAcceptance(offerId);
 
-    // 🔥 Notify customer
-    await notify(
-      offer.job.user.id,
-      offer.job.user.email,
-      "Offer Accepted",
-      "A professional has accepted your job",
-      "offerAccepted",
-      `/dashboard/jobs/${offer.jobId}`
-    );
+    // Notify customer
+    await notify({
+      userId: offer.job.user.id,
+      email: offer.job.user.email,
+      title: "Offer Accepted",
+      body: "A professional has accepted your job",
+      type: "offerAccepted",
+      template: "offerAccepted",
+    });
 
-    // 🔥 Notify professional
-    await notify(
-      offer.professional.user.id,
-      offer.professional.user.email,
-      "Offer Accepted",
-      "You accepted the job",
-      "offerAccepted",
-      `/dashboard/jobs/${offer.jobId}`
-    );
+    // Notify professional
+    await notify({
+      userId: offer.professional.user.id,
+      email: offer.professional.user.email,
+      title: "Offer Accepted",
+      body: "You accepted the job",
+      type: "offerAccepted",
+      template: "offerAccepted",
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {
