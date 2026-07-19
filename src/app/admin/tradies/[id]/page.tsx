@@ -135,7 +135,8 @@ export default async function AdminTradieDetailPage({ params }: AdminTradieDetai
           <ul className="list-disc ml-6">
             {tradie.jobAssignments.map((a) => (
               <li key={a.id}>
-                {a.job.subcategory.name} — {a.status}
+                {a.job.subcategory.name} — Assigned on{" "}
+                {new Date(a.createdAt).toLocaleDateString()}
               </li>
             ))}
           </ul>
