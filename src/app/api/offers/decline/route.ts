@@ -38,25 +38,25 @@ export async function POST(req: Request) {
     // Decline the offer
     await handleOfferDecline(offerId);
 
-    // 🔥 Notify customer
-    await notify(
-      offer.job.user.id,
-      offer.job.user.email,
-      "Offer Declined",
-      "A professional declined your job",
-      "offerDeclined",
-      `/dashboard/jobs/${offer.jobId}`
-    );
+    // Notify customer
+    await notify({
+      userId: offer.job.user.id,
+      email: offer.job.user.email,
+      title: "Offer Declined",
+      body: "A professional declined your job",
+      type: "offerDeclined",
+      template: "offerDeclined",
+    });
 
-    // 🔥 Notify professional
-    await notify(
-      offer.professional.user.id,
-      offer.professional.user.email,
-      "Offer Declined",
-      "You declined the job",
-      "offerDeclined",
-      `/dashboard/jobs/${offer.jobId}`
-    );
+    // Notify professional
+    await notify({
+      userId: offer.professional.user.id,
+      email: offer.professional.user.email,
+      title: "Offer Declined",
+      body: "You declined the job",
+      type: "offerDeclined",
+      template: "offerDeclined",
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {
