@@ -3,18 +3,25 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 export default async function TradieJobPage({ params }: PageProps) {
-  const { id } = await params;
+  const { id } = params;
 
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
 
-  // Fetch tradie
-  const tradie = await prisma.professional.findUnique({
+  // Fetch user first
+  const user = await prisma.user.findUnique({
     where: { clerkId },
+  });
+
+  if (!user) redirect("/tradies");
+
+  // Fetch tradie using user.id
+  const tradie = await prisma.professional.findUnique({
+    where: { userId: user.id },
   });
 
   if (!tradie) redirect("/tradies");
@@ -29,11 +36,11 @@ export default async function TradieJobPage({ params }: PageProps) {
     },
     include: {
       subcategory: { include: { category: true } },
-      user: true, // customer
+      user: true,
       assignments: { include: { professional: true } },
       offers: { include: { professional: true } },
       activities: { orderBy: { createdAt: "asc" } },
-      reviews: true, // ⭐ NEW: include reviews
+      reviews: true,
     },
   });
 
@@ -73,7 +80,7 @@ export default async function TradieJobPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* ⭐ REVIEW SECTION */}
+      {/* Review Section */}
       <div className="border rounded-lg p-6 bg-white shadow-sm">
         <h2 className="text-xl font-semibold">Customer Review</h2>
 
