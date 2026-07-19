@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function POST(req: Request, { params }: { params: { jobId: string } }) {
-  const { jobId } = params;
+export async function POST(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  const jobId = params.id;
 
   const job = await prisma.job.findUnique({
     where: { id: jobId },
@@ -13,7 +16,10 @@ export async function POST(req: Request, { params }: { params: { jobId: string }
   }
 
   if (job.status !== "ASSIGNED") {
-    return NextResponse.json({ error: "Job is not assigned yet" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Job is not assigned yet" },
+      { status: 400 }
+    );
   }
 
   await prisma.job.update({
