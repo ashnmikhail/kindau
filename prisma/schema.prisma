@@ -130,6 +130,11 @@ model Job {
   maxRetries    Int             @default(3)
   lastRetryAt   DateTime?
 
+  // ⭐ NEW FIELDS
+  requestedDay Int?
+  startTime    String?
+  endTime      String?
+
   professionalId String?
   professional   Professional? @relation(fields: [professionalId], references: [id])
 

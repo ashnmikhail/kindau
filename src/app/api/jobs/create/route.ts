@@ -15,9 +15,20 @@ export async function POST(req: Request) {
       suburb,
       postcode,
       price,
+      requestedDay,
+      startTime,
+      endTime,
     } = body;
 
-    if (!userId || !subcategoryId || !postcode) {
+    // REQUIRED FIELDS CHECK
+    if (
+      !userId ||
+      !subcategoryId ||
+      !postcode ||
+      requestedDay === undefined ||
+      !startTime ||
+      !endTime
+    ) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -34,6 +45,11 @@ export async function POST(req: Request) {
         postcode,
         price,
         status: JobStatus.PENDING,
+
+        // ⭐ NEW SCHEDULING FIELDS
+        requestedDay,
+        startTime,
+        endTime,
       },
     });
 
