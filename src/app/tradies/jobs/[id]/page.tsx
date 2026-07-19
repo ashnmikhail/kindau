@@ -70,14 +70,15 @@ export default async function TradieJobPage({ params }: PageProps) {
 
         <div className="text-sm text-gray-600 space-y-1">
           <p>📍 {job.suburb}, {job.postcode}</p>
-          {/* Fixed: Converted Prisma Decimal to string/number formatting for React to render */}
+          {/* Converted Prisma Decimal to string/number formatting for React to render */}
           <p>💲 <strong>${job.price ? Number(job.price).toFixed(2) : "0.00"}</strong></p>
           <p>📅 {new Date(job.createdAt).toLocaleDateString()}</p>
         </div>
 
         <div className="mt-4 p-3 bg-blue-50 border rounded">
           <p className="text-sm font-medium text-blue-700">
-            Customer: {job.user.firstName} {job.user.lastName}
+            {/* Fixed: Replaced firstName/lastName with the combined name property from your schema */}
+            Customer: {job.user.name || "Unnamed Customer"}
           </p>
           <p className="text-sm text-blue-700">{job.user.email}</p>
         </div>
