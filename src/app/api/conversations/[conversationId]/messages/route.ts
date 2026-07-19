@@ -3,9 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 
 export async function POST(
   req: Request,
-  context: { params: { conversationId: string } }
+  context: { params: Promise<{ conversationId: string }> } // 1. Promise added
 ) {
-  const { conversationId } = context.params;
+  const { conversationId } = await context.params; // 2. Await added
   const { userId } = await auth();
 
   if (!userId)
@@ -55,9 +55,9 @@ export async function POST(
 
 export async function GET(
   req: Request,
-  context: { params: { conversationId: string } }
+  context: { params: Promise<{ conversationId: string }> } // 1. Promise added
 ) {
-  const { conversationId } = context.params;
+  const { conversationId } = await context.params; // 2. Await added
   const { userId } = await auth();
 
   if (!userId)
