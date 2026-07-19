@@ -43,7 +43,7 @@ export default async function AdminTradieDetailPage({ params }: AdminTradieDetai
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       <h1 className="text-3xl font-bold text-kindau-teal">
-        {tradie.fullName || tradie.name}
+        {tradie.name || tradie.user?.name || tradie.user?.email}
       </h1>
 
       {/* BASIC INFO */}
@@ -151,7 +151,7 @@ export default async function AdminTradieDetailPage({ params }: AdminTradieDetai
           <ul className="list-disc ml-6">
             {tradie.bookings.map((b) => (
               <li key={b.id}>
-                {b.job.subcategory.name} — Customer: {b.customer.fullName}
+                {b.job.subcategory.name} — Customer: {b.customer.name || b.customer.email}
               </li>
             ))}
           </ul>
