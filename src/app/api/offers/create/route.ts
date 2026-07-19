@@ -39,14 +39,15 @@ export async function POST(req: Request) {
 
     await logActivity(jobId, "OFFER_SENT", `Offer sent to professional ${professionalId}`, professional.userId)
 
-    await notify(
-      professional.user.id,
-      professional.user.email,
-      "New Job Offer",
-      `You have a new job offer`,
-      "newOffer",
-      `/dashboard/offers`
-    )
+    // Notify professional
+    await notify({
+      userId: professional.user.id,
+      email: professional.user.email,
+      title: "New Job Offer",
+      body: `You have a new job offer`,
+      type: "newOffer",
+      template: "newOffer",
+    })
 
     return NextResponse.json({ ok: true, offer })
   } catch (err) {
