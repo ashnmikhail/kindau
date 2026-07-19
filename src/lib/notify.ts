@@ -6,13 +6,13 @@ async function notifyInApp(
   title: string,
   body?: string
 ) {
-  // Combine title and body since 'body' does not exist in your Prisma schema
-  const combinedTitle = body ? `${title}: ${body}` : title;
+  // Combine title and body into a single message string since that is the required field
+  const combinedMessage = body ? `${title}: ${body}` : title;
 
   await prisma.notification.create({
     data: {
       userId,
-      title: combinedTitle,
+      message: combinedMessage,
     },
   });
 }
