@@ -3,14 +3,12 @@ import { prisma } from "@/lib/prisma";
 // In-app notification
 async function notifyInApp(
   userId: string,
-  type: string,
   title: string,
   body?: string
 ) {
   await prisma.notification.create({
     data: {
       userId,
-      type,
       title,
       body: body ?? null,
     },
@@ -30,14 +28,13 @@ async function notifyEmail(
 export async function notify({
   userId,
   email,
-  type,
   title,
   body,
   template,
 }: {
   userId: string;
   email?: string | null;
-  type: string;
+  type?: string; // Kept as optional parameter to prevent breaking caller files
   title: string;
   body?: string;
   template: string;
@@ -48,7 +45,7 @@ export async function notify({
 
   // If no preferences exist → allow everything
   if (!prefs) {
-    await notifyInApp(userId, type, title, body);
+    await notifyInApp(userId, title, body);
     if (email) await notifyEmail(email, title, body ?? "");
     return;
   }
@@ -74,7 +71,7 @@ export async function notify({
 
   // In-app notification
   if (allowInApp) {
-    await notifyInApp(userId, type, title, body);
+    await notifyInApp(userId, title, body);
   }
 
   // Email notification
