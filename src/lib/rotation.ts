@@ -84,7 +84,7 @@ async function getEligibleTradies(job: any, postcodes: string[]) {
   }
 
   return filtered.filter((t) =>
-    t.serviceAreas.some((a) => a.postcode && postcodes.includes(a.postcode))
+    t.serviceAreas.some((a: { postcode: string | null }) => a.postcode && postcodes.includes(a.postcode))
   );
 }
 
