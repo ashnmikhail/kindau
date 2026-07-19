@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import AcceptJobButton from "./AcceptJobButton";
-import DeclineJobButton from "./DeclineJobButton";
 
 export default function TradieJobFeedPage() {
   const [jobs, setJobs] = useState([]);
@@ -44,10 +42,7 @@ export default function TradieJobFeedPage() {
               <p>📅 {new Date(job.createdAt).toLocaleDateString()}</p>
             </div>
 
-            <div className="flex gap-3 mt-4">
-              <AcceptJobButton jobId={job.id} />
-              <DeclineJobButton jobId={job.id} />
-            </div>
+            {/* Removed Accept/Decline buttons */}
 
             <Link
               href={`/tradies/jobs/${job.id}`}
