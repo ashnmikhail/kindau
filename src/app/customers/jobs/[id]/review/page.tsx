@@ -50,7 +50,6 @@ export default function ReviewPage({ params }: { params: { id: string } }) {
   if (loading) return <p className="p-4">Loading...</p>;
   if (!job) return <p className="p-4">Job not found.</p>;
 
-  // Prevent review if job is not completed
   if (job.status !== "COMPLETED") {
     return (
       <div className="p-6">
@@ -61,7 +60,6 @@ export default function ReviewPage({ params }: { params: { id: string } }) {
     );
   }
 
-  // Prevent review if already reviewed
   if (job.reviews && job.reviews.length > 0) {
     return (
       <div className="p-6">
@@ -84,7 +82,6 @@ export default function ReviewPage({ params }: { params: { id: string } }) {
         </p>
       </div>
 
-      {/* Review Form */}
       <div className="border rounded-lg p-4 bg-white shadow-sm space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">
