@@ -25,25 +25,27 @@ export async function GET() {
   tomorrow.setDate(today.getDate() + 1);
 
   // 1. Today's bookings
+  // FIXED: Changed 'startTime' to 'scheduledDate' to match the Booking model
   const todaysBookings = await prisma.booking.findMany({
     where: {
       professionalId: proId,
       status: BookingStatus.CONFIRMED,
-      startTime: { gte: today, lt: tomorrow },
+      scheduledDate: { gte: today, lt: tomorrow },
     },
     include: { job: true, customer: true },
-    orderBy: { startTime: "asc" },
+    orderBy: { scheduledDate: "asc" },
   });
 
   // 2. Upcoming bookings
+  // FIXED: Changed 'startTime' to 'scheduledDate' to match the Booking model
   const upcomingBookings = await prisma.booking.findMany({
     where: {
       professionalId: proId,
       status: BookingStatus.CONFIRMED,
-      startTime: { gt: tomorrow },
+      scheduledDate: { gt: tomorrow },
     },
     include: { job: true, customer: true },
-    orderBy: { startTime: "asc" },
+    orderBy: { scheduledDate: "asc" },
   });
 
   // 3. Pending customer actions
@@ -57,22 +59,24 @@ export async function GET() {
   });
 
   // 4. Assigned jobs (not yet booked)
+  // FIXED: Changed 'customer: true' to 'user: true' to match the Job model relation
   const assignedJobs = await prisma.job.findMany({
     where: {
       professionalId: proId,
       status: JobStatus.ASSIGNED,
     },
-    include: { customer: true },
+    include: { user: true },
     orderBy: { createdAt: "desc" },
   });
 
   // 5. Completed jobs
+  // FIXED: Changed 'customer: true' to 'user: true' to match the Job model relation
   const completedJobs = await prisma.job.findMany({
     where: {
       professionalId: proId,
       status: JobStatus.COMPLETED,
     },
-    include: { customer: true },
+    include: { user: true },
     orderBy: { updatedAt: "desc" },
   });
 

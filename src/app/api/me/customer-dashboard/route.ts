@@ -8,13 +8,14 @@ export async function GET() {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   // 1. Active job (any job not completed/cancelled/expired)
-  // FIXED: Changed customerId to userId
   const activeJob = await prisma.job.findFirst({
     where: {
       userId: userId, 
       status: { 
         in: [
-          JobStatus.OPEN, 
+          JobStatus.PENDING,
+          JobStatus.MATCHING,
+          JobStatus.OFFERED,
           JobStatus.ASSIGNED, 
           JobStatus.CONTACT_PENDING, 
           JobStatus.BOOKED
@@ -23,16 +24,18 @@ export async function GET() {
     },
     include: {
       professional: true,
-      booking: true,
+      bookings: true, // FIXED: Pluralized to match your schema's "bookings Booking?" relation
     },
     orderBy: { createdAt: "desc" },
   });
 
   // 2. Upcoming booking (if exists)
   let upcomingBooking = null;
-  if (activeJob?.bookingId) {
+  // Note: If you run into types complaining about activeJob.bookingId, 
+  // you might need to reference activeJob.bookings?.id depending on how your one-to-one is resolved.
+  if (activeJob?.bookings) {
     upcomingBooking = await prisma.booking.findUnique({
-      where: { id: activeJob.bookingId },
+      where: { id: activeJob.bookings.id },
       include: {
         professional: true,
         job: true,
@@ -41,7 +44,6 @@ export async function GET() {
   }
 
   // 3. Pending actions
-  // NOTE: Booking model DOES use customerId, so this stays as is!
   const pendingActions = await prisma.booking.findMany({
     where: {
       customerId: userId,
@@ -85,7 +87,6 @@ export async function GET() {
   );
 
   // 5. Past jobs
-  // FIXED: Changed customerId to userId
   const pastJobs = await prisma.job.findMany({
     where: {
       userId: userId,
@@ -99,7 +100,7 @@ export async function GET() {
     },
     include: {
       professional: true,
-      booking: true,
+      bookings: true, // FIXED: Pluralized to match schema
     },
     orderBy: { updatedAt: "desc" },
   });
