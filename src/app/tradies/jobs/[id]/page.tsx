@@ -70,7 +70,8 @@ export default async function TradieJobPage({ params }: PageProps) {
 
         <div className="text-sm text-gray-600 space-y-1">
           <p>📍 {job.suburb}, {job.postcode}</p>
-          <p>💲 <strong>${job.price}</strong></p>
+          {/* Fixed: Converted Prisma Decimal to string/number formatting for React to render */}
+          <p>💲 <strong>${job.price ? Number(job.price).toFixed(2) : "0.00"}</strong></p>
           <p>📅 {new Date(job.createdAt).toLocaleDateString()}</p>
         </div>
 
