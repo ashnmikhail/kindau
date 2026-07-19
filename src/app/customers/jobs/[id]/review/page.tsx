@@ -1,11 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 
-export default function ReviewPage({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export default function ReviewPage({ params }: PageProps) {
   const router = useRouter();
-  const jobId = params.id;
+  
+  // Unwraps the asynchronous params using React's use() hook
+  const unpackedParams = use(params);
+  const jobId = unpackedParams.id;
 
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -13,16 +22,22 @@ export default function ReviewPage({ params }: { params: { id: string } }) {
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
 
-  async function loadJob() {
-    const res = await fetch(`/api/jobs/full?jobId=${jobId}`);
-    const data = await res.json();
-    setJob(data);
-    setLoading(false);
-  }
-
   useEffect(() => {
+    async function loadJob() {
+      if (!jobId) return;
+      try {
+        const res = await fetch(`/api/jobs/full?jobId=${jobId}`);
+        const data = await res.json();
+        setJob(data);
+      } catch (err) {
+        setError("Failed to fetch job details.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
     loadJob();
-  }, []);
+  }, [jobId]); // Added jobId to dependencies so it triggers once unwrapped
 
   async function submitReview() {
     setError("");
