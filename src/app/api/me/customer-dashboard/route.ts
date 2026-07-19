@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { JobStatus, BookingStatus } from "@prisma/client";
 
 export async function GET() {
   const { userId } = await auth();
@@ -10,7 +11,14 @@ export async function GET() {
   const activeJob = await prisma.job.findFirst({
     where: {
       customerId: userId,
-      status: { in: ["OPEN", "ASSIGNED", "CONTACT_PENDING", "BOOKED"] },
+      status: { 
+        in: [
+          JobStatus.OPEN, 
+          JobStatus.ASSIGNED, 
+          JobStatus.CONTACT_PENDING, 
+          JobStatus.BOOKED
+        ] 
+      },
     },
     include: {
       professional: true,
@@ -35,7 +43,7 @@ export async function GET() {
   const pendingActions = await prisma.booking.findMany({
     where: {
       customerId: userId,
-      status: { in: ["PENDING_CUSTOMER"] },
+      status: { in: [BookingStatus.PENDING_CUSTOMER] },
     },
     include: {
       job: true,
@@ -78,7 +86,13 @@ export async function GET() {
   const pastJobs = await prisma.job.findMany({
     where: {
       customerId: userId,
-      status: { in: ["COMPLETED", "CANCELLED", "EXPIRED"] },
+      status: { 
+        in: [
+          JobStatus.COMPLETED, 
+          JobStatus.CANCELLED, 
+          JobStatus.EXPIRED
+        ] 
+      },
     },
     include: {
       professional: true,

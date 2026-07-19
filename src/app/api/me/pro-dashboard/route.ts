@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { JobStatus, BookingStatus } from "@prisma/client";
 
 export async function GET() {
   const { userId } = await auth();
@@ -27,7 +28,7 @@ export async function GET() {
   const todaysBookings = await prisma.booking.findMany({
     where: {
       professionalId: proId,
-      status: "CONFIRMED",
+      status: BookingStatus.CONFIRMED,
       startTime: { gte: today, lt: tomorrow },
     },
     include: { job: true, customer: true },
@@ -38,7 +39,7 @@ export async function GET() {
   const upcomingBookings = await prisma.booking.findMany({
     where: {
       professionalId: proId,
-      status: "CONFIRMED",
+      status: BookingStatus.CONFIRMED,
       startTime: { gt: tomorrow },
     },
     include: { job: true, customer: true },
@@ -49,7 +50,7 @@ export async function GET() {
   const pendingCustomer = await prisma.booking.findMany({
     where: {
       professionalId: proId,
-      status: "PENDING_CUSTOMER",
+      status: BookingStatus.PENDING_CUSTOMER,
     },
     include: { job: true, customer: true },
     orderBy: { createdAt: "desc" },
@@ -59,7 +60,7 @@ export async function GET() {
   const assignedJobs = await prisma.job.findMany({
     where: {
       professionalId: proId,
-      status: "ASSIGNED",
+      status: JobStatus.ASSIGNED,
     },
     include: { customer: true },
     orderBy: { createdAt: "desc" },
@@ -69,7 +70,7 @@ export async function GET() {
   const completedJobs = await prisma.job.findMany({
     where: {
       professionalId: proId,
-      status: "COMPLETED",
+      status: JobStatus.COMPLETED,
     },
     include: { customer: true },
     orderBy: { updatedAt: "desc" },
