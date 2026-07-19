@@ -50,7 +50,9 @@ export default async function AdminTradiesPage() {
           {tradies.map((t) => (
             <tr key={t.id} className="border-t align-top">
               <td className="p-3">
-                <div className="font-semibold">{t.fullName}</div>
+                <div className="font-semibold">
+                  {t.name || t.user?.name || t.user?.email}
+                </div>
                 <div className="text-sm text-gray-600">{t.user?.email}</div>
               </td>
 
