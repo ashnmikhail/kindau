@@ -55,18 +55,26 @@ export async function notifyEvent({
       break
   }
 
-  await notify(
+  await notify({
     userId,
     email,
-    subject,
-    message,
-    template
-  )
+    title: subject,
+    body: message,
+    type: template,
+    template,
+  })
 }
 
 export async function createInAppNotification(
   userId: string,
   message: string
 ) {
-  return notify(userId, null, "Notification", message, "jobCompleted")
+  return notify({
+    userId,
+    email: null,
+    title: "Notification",
+    body: message,
+    type: "jobCompleted",
+    template: "jobCompleted",
+  })
 }
