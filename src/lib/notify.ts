@@ -6,11 +6,13 @@ async function notifyInApp(
   title: string,
   body?: string
 ) {
+  // Combine title and body since 'body' does not exist in your Prisma schema
+  const combinedTitle = body ? `${title}: ${body}` : title;
+
   await prisma.notification.create({
     data: {
       userId,
-      title,
-      body: body ?? null,
+      title: combinedTitle,
     },
   });
 }
@@ -34,7 +36,7 @@ export async function notify({
 }: {
   userId: string;
   email?: string | null;
-  type?: string; // Kept as optional parameter to prevent breaking caller files
+  type?: string; // Kept to support caller configurations smoothly
   title: string;
   body?: string;
   template: string;
