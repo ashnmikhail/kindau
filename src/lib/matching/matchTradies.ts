@@ -46,6 +46,7 @@ export async function matchTradies(input: MatchTradiesInput) {
         : undefined,
     },
     include: {
+      user: true, // ⭐ REQUIRED FIX
       availability: true,
       serviceAreas: true,
       categories: { include: { category: true } },
