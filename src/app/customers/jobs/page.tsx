@@ -41,45 +41,67 @@ export default function CustomerJobsPage() {
       )}
 
       <div className="space-y-4">
-        {jobs.map((job: any) => (
-          <div
-            key={job.id}
-            className="border rounded-lg p-5 shadow-sm bg-white"
-          >
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">
-                {job.subcategory?.name}
-              </h2>
+        {jobs.map((job: any) => {
+          const hasReview = job.reviews && job.reviews.length > 0;
 
-              <span className={statusBadge(job.status)}>
-                {job.status.replace("_", " ")}
-              </span>
-            </div>
-
-            <p className="text-gray-700 mt-2">{job.description}</p>
-
-            <div className="mt-3 text-sm text-gray-600 space-y-1">
-              <p>📍 {job.suburb}, {job.postcode}</p>
-              <p>💲 <strong>${job.price}</strong></p>
-              <p>📅 {new Date(job.createdAt).toLocaleDateString()}</p>
-            </div>
-
-            {job.assignment && (
-              <div className="mt-3 p-3 bg-green-50 border rounded">
-                <p className="text-sm font-medium text-green-700">
-                  Assigned to: {job.assignment.professional.name}
-                </p>
-              </div>
-            )}
-
-            <Link
-              href={`/customers/jobs/${job.id}`}
-              className="mt-4 inline-block bg-kindau-teal text-white px-4 py-2 rounded hover:bg-kindau-orange transition"
+          return (
+            <div
+              key={job.id}
+              className="border rounded-lg p-5 shadow-sm bg-white"
             >
-              View Job
-            </Link>
-          </div>
-        ))}
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold">
+                  {job.subcategory?.name}
+                </h2>
+
+                <span className={statusBadge(job.status)}>
+                  {job.status.replace("_", " ")}
+                </span>
+              </div>
+
+              <p className="text-gray-700 mt-2">{job.description}</p>
+
+              <div className="mt-3 text-sm text-gray-600 space-y-1">
+                <p>📍 {job.suburb}, {job.postcode}</p>
+                <p>💲 <strong>${job.price}</strong></p>
+                <p>📅 {new Date(job.createdAt).toLocaleDateString()}</p>
+              </div>
+
+              {job.assignment && (
+                <div className="mt-3 p-3 bg-green-50 border rounded">
+                  <p className="text-sm font-medium text-green-700">
+                    Assigned to: {job.assignment.professional.name}
+                  </p>
+                </div>
+              )}
+
+              {/* ⭐ REVIEW STATUS */}
+              {job.status === "COMPLETED" && (
+                <div className="mt-4">
+                  {hasReview ? (
+                    <p className="text-green-700 text-sm font-medium">
+                      ✔ Review Submitted
+                    </p>
+                  ) : (
+                    <Link
+                      href={`/customers/jobs/${job.id}/review`}
+                      className="inline-block bg-kindau-teal text-white px-3 py-1 rounded text-sm hover:bg-kindau-orange transition"
+                    >
+                      Leave a Review
+                    </Link>
+                  )}
+                </div>
+              )}
+
+              <Link
+                href={`/customers/jobs/${job.id}`}
+                className="mt-4 inline-block bg-kindau-teal text-white px-4 py-2 rounded hover:bg-kindau-orange transition"
+              >
+                View Job
+              </Link>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

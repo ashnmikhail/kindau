@@ -8,28 +8,34 @@ export default function TradieOffersPage() {
   const [offers, setOffers] = useState([]);
 
   async function loadOffers() {
-    const res = await fetch("/api/tradies/offers");
+    const res = await fetch("/api/professional/offers");
     const data = await res.json();
-    setOffers(data);
+    setOffers(data ?? []);
   }
 
   useEffect(() => {
     loadOffers();
   }, []);
 
-  async function acceptOffer(offerId: string) {
-    await fetch("/api/offers/accept", {
+  async function acceptOffer(offerId: string, jobId: string) {
+    const res = await fetch(`/api/offers/${offerId}/accept`, {
       method: "POST",
-      body: JSON.stringify({ offerId }),
     });
-    loadOffers();
+
+    const data = await res.json();
+
+    if (data.success) {
+      window.location.href = `/tradies/jobs/${jobId}`;
+    } else {
+      alert("Job already taken.");
+    }
   }
 
   async function declineOffer(offerId: string) {
-    await fetch("/api/offers/decline", {
+    await fetch(`/api/offers/${offerId}/decline`, {
       method: "POST",
-      body: JSON.stringify({ offerId }),
     });
+
     loadOffers();
   }
 
@@ -87,12 +93,8 @@ export default function TradieOffersPage() {
               <p className="text-gray-700 mt-2">{job.description}</p>
 
               <div className="mt-3 text-sm text-gray-600 space-y-1">
-                <p>
-                  📍 {job.suburb}, {job.postcode}
-                </p>
-                <p>
-                  💲 <strong>${job.price}</strong>
-                </p>
+                <p>📍 {job.suburb}, {job.postcode}</p>
+                <p>💲 <strong>${job.price}</strong></p>
                 <p>👤 Customer: {job.customer?.firstName}</p>
                 <p>📅 {new Date(job.createdAt).toLocaleDateString()}</p>
               </div>
@@ -100,7 +102,7 @@ export default function TradieOffersPage() {
               {!job.assignment && (
                 <div className="flex gap-3 mt-4">
                   <button
-                    onClick={() => acceptOffer(offer.id)}
+                    onClick={() => acceptOffer(offer.id, job.id)}
                     className="bg-kindau-teal text-white px-4 py-2 rounded hover:bg-kindau-orange transition"
                   >
                     Accept

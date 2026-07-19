@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+
 import CurrentStageCard from "@/components/jobs/CurrentStageCard";
 import ProgressIllustration from "@/components/jobs/ProgressIllustration";
 import JobProgressTracker from "@/components/jobs/JobProgressTracker";
@@ -15,45 +16,32 @@ interface Props {
 
 export default async function JobPage({ params }: Props) {
   const { id } = await params;
-  const { userId: clerkId } = await auth();
 
-  if (!clerkId) {
-    redirect("/sign-in");
-  }
+  const { userId: clerkId } = await auth();
+  if (!clerkId) redirect("/sign-in");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
   });
-
-  if (!user) {
-    redirect("/");
-  }
+  if (!user) redirect("/");
 
   const job = await prisma.job.findFirst({
-    where: {
-      id,
-      userId: user.id,
-    },
+    where: { id, userId: user.id },
     include: {
-      subcategory: {
-        include: { category: true },
-      },
-      assignments: {
-        include: { professional: true },
-      },
+      subcategory: { include: { category: true } },
+      assignments: { include: { professional: true } },
       offers: {
         include: { professional: true },
         orderBy: { createdAt: "asc" },
       },
-      activities: {
-        orderBy: { createdAt: "asc" },
-      },
+      activities: { orderBy: { createdAt: "asc" } },
+
+      // ⭐ NEW: include reviews
+      reviews: true,
     },
   });
 
-  if (!job) {
-    redirect("/customers/jobs");
-  }
+  if (!job) redirect("/customers/jobs");
 
   const steps = [
     "PENDING",
@@ -68,6 +56,8 @@ export default async function JobPage({ params }: Props) {
 
   const currentIndex = Math.max(steps.indexOf(job.status), 0);
   const assignedProfessional = job.assignments[0]?.professional;
+
+  const hasReview = job.reviews && job.reviews.length > 0;
 
   return (
     <>
@@ -97,6 +87,7 @@ export default async function JobPage({ params }: Props) {
           <div className="space-y-8">
             <ProfessionalCard professional={assignedProfessional} />
 
+            {/* Job Details */}
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
               <h2 className="mb-5 text-xl font-bold">Job Details</h2>
 
@@ -137,6 +128,40 @@ export default async function JobPage({ params }: Props) {
                   <p>{job.createdAt.toLocaleDateString()}</p>
                 </div>
               </div>
+            </div>
+
+            {/* ⭐ NEW: Review Section */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="mb-5 text-xl font-bold">Your Review</h2>
+
+              {job.status !== "COMPLETED" && (
+                <p className="text-gray-600 text-sm">
+                  You can leave a review once the job is completed.
+                </p>
+              )}
+
+              {job.status === "COMPLETED" && !hasReview && (
+                <a
+                  href={`/customers/jobs/${job.id}/review`}
+                  className="inline-block bg-kindau-teal text-white px-4 py-2 rounded hover:bg-kindau-orange transition text-sm"
+                >
+                  Leave a Review
+                </a>
+              )}
+
+              {hasReview && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm text-gray-500">Rating</p>
+                  <p className="font-semibold text-kindau-teal">
+                    {job.reviews[0].rating} / 5
+                  </p>
+
+                  <p className="text-sm text-gray-500">Comment</p>
+                  <p className="leading-relaxed">
+                    {job.reviews[0].comment || "No comment provided."}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
