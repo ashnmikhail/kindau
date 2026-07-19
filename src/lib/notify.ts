@@ -6,7 +6,7 @@ async function notifyInApp(
   title: string,
   body?: string
 ) {
-  // Combine title and body into a single message string since that is the required field
+  // Combine title and body into a single message string for the database contract
   const combinedMessage = body ? `${title}: ${body}` : title;
 
   await prisma.notification.create({
@@ -58,18 +58,18 @@ export async function notify({
   let allowEmail = true;
   let allowInApp = true;
 
-  // Email preferences
+  // Email preferences (Mapped directly to verified schema keys)
   if (template === "newOffer" && !prefs.emailOffers) allowEmail = false;
   if (template === "offerAccepted" && !prefs.emailOffers) allowEmail = false;
   if (template === "jobStarted" && !prefs.emailJobUpdates) allowEmail = false;
   if (template === "jobCompleted" && !prefs.emailJobUpdates) allowEmail = false;
-  if (template === "newMessage" && !prefs.emailMessages) allowEmail = false;
+  if (template === "newMessage" && !prefs.emailJobUpdates) allowEmail = false; // Fallback to job updates
 
-  // In-app preferences
+  // In-app preferences (Mapped directly to verified schema keys)
   if (template === "newOffer" && !prefs.inAppOffers) allowInApp = false;
   if (template === "jobStarted" && !prefs.inAppJobUpdates) allowInApp = false;
   if (template === "jobCompleted" && !prefs.inAppJobUpdates) allowInApp = false;
-  if (template === "newMessage" && !prefs.inAppMessages) allowInApp = false;
+  if (template === "newMessage" && !prefs.inAppJobUpdates) allowInApp = false; // Fallback to job updates
 
   // In-app notification
   if (allowInApp) {
