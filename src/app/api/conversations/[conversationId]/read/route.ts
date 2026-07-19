@@ -3,9 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 
 export async function POST(
   req: Request,
-  context: { params: { conversationId: string } }
+  context: { params: Promise<{ conversationId: string }> } // 1. Turned params into a Promise
 ) {
-  const { conversationId } = context.params;
+  const { conversationId } = await context.params; // 2. Await the params here
   const { userId } = await auth();
 
   if (!userId)
