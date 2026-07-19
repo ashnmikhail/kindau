@@ -58,24 +58,24 @@ export async function POST(req: Request) {
     await logActivity(jobId, "JOB_STARTED", "Job started", professional.userId)
 
     // Notify customer
-    await notify(
-      job.user.id,
-      job.user.email,
-      "Job Started",
-      "Your professional has started the job",
-      "jobStarted",
-      `/dashboard/jobs/${jobId}`
-    )
+    await notify({
+      userId: job.user.id,
+      email: job.user.email,
+      title: "Job Started",
+      body: "Your professional has started the job",
+      type: "jobStarted",
+      template: "jobStarted",
+    })
 
     // Notify professional
-    await notify(
-      professional.user.id,
-      professional.user.email,
-      "Job Started",
-      "You have started the job",
-      "jobStarted",
-      `/dashboard/jobs/${jobId}`
-    )
+    await notify({
+      userId: professional.user.id,
+      email: professional.user.email,
+      title: "Job Started",
+      body: "You have started the job",
+      type: "jobStarted",
+      template: "jobStarted",
+    })
 
     return NextResponse.json({ ok: true })
   } catch (err) {
