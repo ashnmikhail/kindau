@@ -6,6 +6,13 @@ export async function GET() {
     orderBy: {
       name: "asc",
     },
+    include: {
+      subcategories: {
+        orderBy: {
+          name: "asc",
+        },
+      },
+    },
   });
 
   return NextResponse.json(categories);
