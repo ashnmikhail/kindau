@@ -12,7 +12,6 @@ interface Subcategory {
 interface Category {
   id: string;
   name: string;
-  subcategories: Subcategory[];
 }
 
 export default function CreateJobPage() {
@@ -25,18 +24,23 @@ export default function CreateJobPage() {
   const [suburb, setSuburb] = useState("");
   const [postcode, setPostcode] = useState("");
 
+  // Load categories
   useEffect(() => {
     fetch("/api/categories")
       .then((res) => res.json())
       .then((data) => setCategories(data));
   }, []);
 
+  // Load subcategories when category changes
   useEffect(() => {
     if (!selectedCategory) return;
-    const cat = categories.find((c) => c.id === selectedCategory);
-    setSubcategories(cat?.subcategories || []);
-  }, [selectedCategory, categories]);
 
+    fetch(`/api/subcategories?categoryId=${selectedCategory}`)
+      .then((res) => res.json())
+      .then((data) => setSubcategories(data));
+  }, [selectedCategory]);
+
+  // Update price when subcategory changes
   useEffect(() => {
     if (!selectedSubcategory) return;
     const sub = subcategories.find((s) => s.id === selectedSubcategory);
@@ -62,10 +66,15 @@ export default function CreateJobPage() {
     <div className="max-w-xl mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-bold">Create a Job</h1>
 
+      {/* Category Dropdown */}
       <select
         className="border p-2 w-full"
         value={selectedCategory}
-        onChange={(e) => setSelectedCategory(e.target.value)}
+        onChange={(e) => {
+          setSelectedCategory(e.target.value);
+          setSelectedSubcategory("");
+          setPrice(null);
+        }}
       >
         <option value="">Select Category</option>
         {categories.map((cat) => (
@@ -75,6 +84,7 @@ export default function CreateJobPage() {
         ))}
       </select>
 
+      {/* Subcategory Dropdown */}
       {selectedCategory && (
         <select
           className="border p-2 w-full"
@@ -90,6 +100,7 @@ export default function CreateJobPage() {
         </select>
       )}
 
+      {/* Price Display */}
       {price !== null && (
         <div className="p-3 bg-gray-100 rounded border">
           <p className="text-lg font-semibold">Price: ${price}</p>
@@ -97,6 +108,7 @@ export default function CreateJobPage() {
         </div>
       )}
 
+      {/* Description */}
       <textarea
         className="border p-2 w-full"
         placeholder="Describe the job..."
@@ -104,6 +116,7 @@ export default function CreateJobPage() {
         onChange={(e) => setDescription(e.target.value)}
       />
 
+      {/* Suburb */}
       <input
         className="border p-2 w-full"
         placeholder="Suburb"
@@ -111,6 +124,7 @@ export default function CreateJobPage() {
         onChange={(e) => setSuburb(e.target.value)}
       />
 
+      {/* Postcode */}
       <input
         className="border p-2 w-full"
         placeholder="Postcode"
@@ -118,6 +132,7 @@ export default function CreateJobPage() {
         onChange={(e) => setPostcode(e.target.value)}
       />
 
+      {/* Submit */}
       <button
         onClick={submitJob}
         className="bg-black text-white p-3 rounded w-full"
