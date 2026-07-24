@@ -1,5 +1,4 @@
 "use client";
-export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 
@@ -16,6 +15,7 @@ interface Category {
 
 export default function CreateJobPage() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedSubcategory, setSelectedSubcategory] = useState("");
@@ -24,11 +24,33 @@ export default function CreateJobPage() {
   const [suburb, setSuburb] = useState("");
   const [postcode, setPostcode] = useState("");
 
-  // Load categories
+  // Load categories with retry logic
   useEffect(() => {
-    fetch("/api/categories")
-      .then((res) => res.json())
-      .then((data) => setCategories(data));
+    async function loadCategories() {
+      setLoadingCategories(true);
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const res = await fetch("/api/categories");
+          const data = await res.json();
+
+          if (Array.isArray(data) && data.length > 0) {
+            setCategories(data);
+            setLoadingCategories(false);
+            return;
+          }
+        } catch (err) {
+          console.error("Category load error:", err);
+        }
+
+        // Wait 300ms before retry
+        await new Promise((r) => setTimeout(r, 300));
+      }
+
+      setLoadingCategories(false);
+    }
+
+    loadCategories();
   }, []);
 
   // Load subcategories when category changes
@@ -67,22 +89,26 @@ export default function CreateJobPage() {
       <h1 className="text-2xl font-bold">Create a Job</h1>
 
       {/* Category Dropdown */}
-      <select
-        className="border p-2 w-full"
-        value={selectedCategory}
-        onChange={(e) => {
-          setSelectedCategory(e.target.value);
-          setSelectedSubcategory("");
-          setPrice(null);
-        }}
-      >
-        <option value="">Select Category</option>
-        {categories.map((cat) => (
-          <option key={cat.id} value={cat.id}>
-            {cat.name}
-          </option>
-        ))}
-      </select>
+      {loadingCategories ? (
+        <p className="text-gray-500">Loading categories...</p>
+      ) : (
+        <select
+          className="border p-2 w-full"
+          value={selectedCategory}
+          onChange={(e) => {
+            setSelectedCategory(e.target.value);
+            setSelectedSubcategory("");
+            setPrice(null);
+          }}
+        >
+          <option value="">Select Category</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
+      )}
 
       {/* Subcategory Dropdown */}
       {selectedCategory && (
